@@ -1,0 +1,25 @@
+name: treefinder_web
+channels:
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python=3.11
+  - gdal>=3.8
+  - rasterio>=1.4
+  - geopandas>=1.0
+  - pyogrio
+  - shapely>=2.0
+  - pyproj
+  - numpy
+  - pandas
+  - pyyaml
+  - requests
+  - tqdm
+  - rio-cogeo
+  - tippecanoe
+  - nodejs=20
+  - gh
+  - pip
+  - pip:
+      - rio-pmtiles
+      - pmtiles

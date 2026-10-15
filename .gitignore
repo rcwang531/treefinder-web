@@ -1,0 +1,5 @@
+# Source data (5.8 GB) stays on the cluster
+datasets/
+pipeline/work/
+pipeline/__pycache__/
+scratch_out/

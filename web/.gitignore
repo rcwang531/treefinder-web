@@ -1,0 +1,5 @@
+node_modules/
+dist/
+# Site imagery tiles are ~250 MB each, over GitHub's 100 MB file limit; build them locally if needed.
+public/data/*/rgb.pmtiles
+public/data/*/nir.pmtiles

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TreeFinder Labels</title>
+    <meta name="description" content="Hand-annotated dead-tree segmentation labels over NAIP imagery, 2021–2023." />
+  </head>
+  <body>
+    <header class="topbar">
+      <button id="drawer-toggle" class="icon-btn" aria-label="Show site list" aria-controls="sidebar">☰</button>
+      <h1>TreeFinder <span>dead-tree labels</span></h1>
+      <nav id="tabs" class="tabs" role="tablist" aria-label="Label sets"></nav>
+      <div class="year-wrap">
+        <span class="year-label">NAIP</span>
+        <div id="years" class="seg" role="radiogroup" aria-label="NAIP year"></div>
+      </div>
+    </header>
+
+    <div class="body">
+      <aside id="sidebar" class="sidebar">
+        <section id="site-card" class="site-card" hidden></section>
+        <div class="filters">
+          <input id="search" type="search" placeholder="Search site or state" autocomplete="off" />
+          <label class="check"><input id="only-labeled" type="checkbox" /> Only sites with labels</label>
+          <div id="count" class="muted"></div>
+        </div>
+        <ul id="site-list" class="site-list"></ul>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map"></div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <section id="layers" class="panel" aria-label="Layers">
+          <h2>Layers</h2>
+          <label class="check"><input type="checkbox" data-ov="polygons" />
+            <i class="sw sw-poly"></i> Label polygons</label>
+          <label class="check"><input type="checkbox" data-ov="mask" />
+            <i class="sw sw-mask"></i> Label mask (raster)</label>
+          <input type="range" min="0" max="1" step="0.05" data-ov="maskOpacity" aria-label="Mask opacity" />
+          <label class="check"><input type="checkbox" data-ov="outlines" />
+            <i class="sw sw-extent"></i> Site extent <i class="sw sw-buffer"></i> buffer</label>
+          <fieldset id="imagery-controls">
+            <legend>Site imagery (from the dataset)</legend>
+            <label class="check"><input type="radio" name="imagery" value="off" data-ov="imagery" /> Off</label>
+            <label class="check"><input type="radio" name="imagery" value="rgb" data-ov="imagery" /> True color</label>
+            <label class="check"><input type="radio" name="imagery" value="nir" data-ov="imagery" /> False color (NIR)</label>
+            <input type="range" min="0" max="1" step="0.05" data-ov="imageryOpacity" aria-label="Site imagery opacity" />
+          </fieldset>
+          <p class="muted small">Keys <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> switch NAIP year.</p>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "attribution": "NAIP imagery: USDA FPAC-BC, via Microsoft Planetary Computer",
+  "years": [
+    {
+      "year": 2021,
+      "searchid": "7ecdf76001a6bd99ebc1177ba259f0be",
+      "tiles": "https://planetarycomputer.microsoft.com/api/data/v1/mosaic/7ecdf76001a6bd99ebc1177ba259f0be/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?collection=naip&assets=image&asset_bidx=image%7C1%2C2%2C3&format=jpeg",
+      "minzoom": 11
+    },
+    {
+      "year": 2022,
+      "searchid": "03d651a3a5a9f00d72d4ece549dd2641",
+      "tiles": "https://planetarycomputer.microsoft.com/api/data/v1/mosaic/03d651a3a5a9f00d72d4ece549dd2641/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?collection=naip&assets=image&asset_bidx=image%7C1%2C2%2C3&format=jpeg",
+      "minzoom": 11
+    },
+    {
+      "year": 2023,
+      "searchid": "eb8bf5832c88cb3eae6cc3376d163747",
+      "tiles": "https://planetarycomputer.microsoft.com/api/data/v1/mosaic/eb8bf5832c88cb3eae6cc3376d163747/tiles/WebMercatorQuad/{z}/{x}/{y}@1x?collection=naip&assets=image&asset_bidx=image%7C1%2C2%2C3&format=jpeg",
+      "minzoom": 11
+    }
+  ]
+}
