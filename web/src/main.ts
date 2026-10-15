@@ -222,10 +222,8 @@ async function main() {
         <dt>NAIP</dt><dd>${naipRows}</dd>
         <dt>Labels refined</dt><dd>${p.label_refined ? fmtDate(p.label_refined) : "—"}</dd>
         ${p.has_imagery ? "" : `<dt>Note</dt><dd>No site imagery in this file</dd>`}
-      </dl>
-      <button class="zoom" type="button">Zoom to site</button>`;
+      </dl>`;
     card.querySelector<HTMLButtonElement>(".close")!.onclick = () => selectSite(null, false);
-    card.querySelector<HTMLButtonElement>(".zoom")!.onclick = () => zoomTo(p);
   }
   function zoomTo(p: SiteProps) {
     const [w, s, e, n] = p.bbox;

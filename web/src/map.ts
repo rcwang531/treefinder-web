@@ -292,6 +292,7 @@ export function applyOverlays(map: maplibregl.Map, o: OverlayState) {
     map.setPaintProperty("mask", "raster-hue-rotate", MASK_HUE_ROTATE[o.naip]);
   }
   vis("extents-line", o.outlines);
+  vis("extents-selected", o.outlines);
 
   if (map.getLayer("site-imagery")) {
     const want = o.imagery === "nir" ? "site-nir" : "site-rgb";
