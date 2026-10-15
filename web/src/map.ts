@@ -13,8 +13,7 @@ export const MASK_CSS: Record<Composite, string> = { true: "#ff00c8", false: "#0
 export const COLORS = {
   polygon: "#ffe14d",
   polygonCasing: "#1b1f23",
-  extent: "#ffffff",
-  selected: "#00e5ff",
+  extent: "#00e5ff", // keep in sync with --sw-extent (legend swatch)
   point: "#ff4fd8",
 };
 
@@ -199,7 +198,7 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
     type: "line",
     source: "extents",
     filter: ["==", ["get", "site"], ""],
-    paint: { "line-color": COLORS.selected, "line-width": 3 },
+    paint: { "line-color": COLORS.extent, "line-width": 3.5 }, // selected site: same color, heavier line
   });
   map.addLayer({
     id: "labels-fill",
