@@ -4,7 +4,48 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>TreeFinder Dashboard</title>
-    <meta name="description" content="Hand-annotated dead-tree segmentation labels over NAIP imagery, 2021–2023." />
+    <meta name="description" content="Interactive map of TreeFinder (NeurIPS 2025), a US-scale benchmark of hand-annotated individual dead trees (tree mortality) on 0.6 m NAIP aerial imagery across ~1,000 sites in 48 states." />
+    <meta name="keywords" content="TreeFinder, tree mortality, dead tree detection, dead tree segmentation, NAIP, aerial imagery, remote sensing dataset, forest monitoring, benchmark dataset, NeurIPS 2025" />
+    <link rel="canonical" href="https://rcwang531.github.io/treefinder-web/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="TreeFinder Dashboard: US dead-tree labels on NAIP imagery" />
+    <meta property="og:description" content="Explore TreeFinder, a NeurIPS 2025 benchmark of hand-annotated individual dead trees on NAIP imagery across the contiguous US." />
+    <meta property="og:url" content="https://rcwang531.github.io/treefinder-web/" />
+    <meta property="og:image" content="https://rcwang531.github.io/treefinder-web/og-image.jpg" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Dataset",
+        "name": "TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring",
+        "alternateName": "TreeFinder",
+        "description": "TreeFinder is a high-resolution benchmark for mapping individual tree mortality across the contiguous United States. Dead trees were hand-annotated at the pixel level on 0.6 m NAIP aerial imagery (R, G, B, NIR) at about 1,000 sites in 48 states, covering more than 23,000 hectares and 20,000 dead trees. Published in the NeurIPS 2025 Datasets and Benchmarks Track.",
+        "url": "https://rcwang531.github.io/treefinder-web/",
+        "sameAs": [
+          "https://www.kaggle.com/datasets/zhihaow/tree-finder",
+          "https://huggingface.co/datasets/ai-spatial/TreeFinder"
+        ],
+        "citation": "https://proceedings.neurips.cc/paper_files/paper/2025/hash/f22625283cf5812f45933610314259be-Abstract-Datasets_and_Benchmarks_Track.html",
+        "license": "https://creativecommons.org/licenses/by/4.0/",
+        "isAccessibleForFree": true,
+        "keywords": ["tree mortality", "dead trees", "semantic segmentation", "NAIP", "aerial imagery", "remote sensing", "forest"],
+        "spatialCoverage": { "@type": "Place", "name": "Contiguous United States" },
+        "creator": [
+          { "@type": "Person", "name": "Zhihao Wang", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "Cooper Li", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "Ruichen Wang", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "Lei Ma", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "George Hurtt", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "Xiaowei Jia", "affiliation": "University of Pittsburgh" },
+          { "@type": "Person", "name": "Gengchen Mai", "affiliation": "University of Texas at Austin" },
+          { "@type": "Person", "name": "Zhili Li", "affiliation": "University of Maryland" },
+          { "@type": "Person", "name": "Yiqun Xie", "affiliation": "University of Maryland" }
+        ],
+        "distribution": [
+          { "@type": "DataDownload", "encodingFormat": "image/tiff", "contentUrl": "https://www.kaggle.com/datasets/zhihaow/tree-finder" }
+        ]
+      }
+    </script>
   </head>
   <body>
     <header class="topbar">
@@ -101,10 +142,14 @@
           <p class="muted small">Benchmarks cover random, cross-region, cross-climate and cross-forest-type splits for CNN and vision-transformer segmentation models.</p>
         </section>
         <section>
-          <h4>This viewer</h4>
-          <p id="about-viewer" class="small">Label polygons and masks are drawn from the dataset's annotation band over NAIP 2021–2023 mosaics from Microsoft Planetary Computer.
-            Use the year switch to compare the labels against each NAIP acquisition.
-            Viewer source: <a href="https://github.com/rcwang531/treefinder-web" target="_blank" rel="noopener">rcwang531/treefinder-web</a>.</p>
+          <h4>Contact</h4>
+          <p>We welcome contributions: new dead-tree labels, corrections to existing ones, and feedback on the dataset.
+            Open an issue on <a href="https://github.com/zhwang0/treefinder/issues" target="_blank" rel="noopener">GitHub</a> or email us.</p>
+          <ul class="contacts">
+            <li>Zhihao Wang · <a href="mailto:zhwang1@umd.edu">zhwang1@umd.edu</a></li>
+            <li>Yiqun Xie · <a href="mailto:xie@umd.edu">xie@umd.edu</a></li>
+            <li>Ruichen Wang · <a href="mailto:ruichenw@umd.edu">ruichenw@umd.edu</a></li>
+          </ul>
         </section>
         <section>
           <h4 class="cite-head">Citation <button id="copy-bib" class="copy" type="button">Copy BibTeX</button></h4>
@@ -117,6 +162,12 @@
         </section>
       </div>
     </dialog>
+    <noscript>
+      <p>TreeFinder Dashboard is an interactive map of the TreeFinder dataset (NeurIPS 2025 Datasets &amp; Benchmarks Track):
+        hand-annotated individual dead trees on 0.6 m NAIP aerial imagery across about 1,000 sites in the contiguous United States.
+        Enable JavaScript to use the map. Dataset: <a href="https://huggingface.co/datasets/ai-spatial/TreeFinder">Hugging Face</a>,
+        <a href="https://www.kaggle.com/datasets/zhihaow/tree-finder">Kaggle</a>. Code: <a href="https://github.com/zhwang0/treefinder">GitHub</a>.</p>
+    </noscript>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

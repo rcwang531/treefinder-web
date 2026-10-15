@@ -169,7 +169,10 @@ async function main() {
   const count = $("#count");
 
   function renderList() {
-    const items = [...state.byName.values()].sort((a, b) => a.site.localeCompare(b.site, undefined, { numeric: true }));
+    // Most-labeled sites first; ties (incl. unlabeled sites) fall back to ID order.
+    const items = [...state.byName.values()].sort(
+      (a, b) => b.label_area_m2 - a.label_area_m2 || a.site.localeCompare(b.site, undefined, { numeric: true }),
+    );
     list.replaceChildren(
       ...items.map((p) => {
         const li = document.createElement("li");
@@ -298,6 +301,16 @@ async function main() {
     syncPanel();
     saveOverlays(state.overlays);
   });
+  // After a mouse/touch click on a layer option, hand focus back to the map so its keyboard
+  // shortcuts (arrows, +/-) keep working. Keyboard users keep focus where they are.
+  let pointerAt = 0;
+  panel.addEventListener("pointerdown", () => (pointerAt = Date.now()));
+  panel.addEventListener("change", (ev) => {
+    const el = ev.target as HTMLInputElement;
+    if ((el.type === "radio" || el.type === "checkbox") && Date.now() - pointerAt < 1000) {
+      map.getCanvas().focus({ preventScroll: true });
+    }
+  });
   panel.querySelector("h2")!.addEventListener("click", () => panel.classList.toggle("collapsed"));
   if (matchMedia("(max-width: 760px)").matches) panel.classList.add("collapsed");
 
@@ -320,8 +333,10 @@ async function main() {
     map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers }).length ? "pointer" : "";
   });
 
+  // Year keys work everywhere except while typing in a text field.
   document.addEventListener("keydown", (e) => {
-    if ((e.target as HTMLElement).closest("input, textarea")) return;
+    const t = e.target as HTMLElement;
+    if (t.matches("textarea, input[type=search], input[type=text]") || e.metaKey || e.ctrlKey || e.altKey) return;
     const i = Number(e.key) - 1;
     const btn = yearsEl.children[i] as HTMLButtonElement | undefined;
     if (btn && !btn.disabled) setYear(years[i]);

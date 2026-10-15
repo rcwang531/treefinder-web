@@ -185,6 +185,7 @@ kbd {
   padding: 0;
 }
 .facts li { padding: 6px 10px; border-radius: 6px; background: var(--surface-2); }
+.contacts { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .cite-head { display: flex; justify-content: space-between; align-items: center; }
 .copy {
   border: 1px solid var(--border);
