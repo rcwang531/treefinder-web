@@ -61,6 +61,8 @@ function saveOverlays(o: OverlayState) {
   }
 }
 
+const LARGE_SITE_M2 = 10_000; // 1 ha
+
 const fmtArea = (m2: number) => (m2 >= 10000 ? `${(m2 / 10000).toFixed(2)} ha` : `${Math.round(m2)} m²`);
 const fmtDate = (iso: string) =>
   new Date(`${iso}T00:00:00`).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
@@ -180,9 +182,14 @@ async function main() {
   const count = $("#count");
 
   function renderList() {
-    // Most-labeled sites first; ties (incl. unlabeled sites) fall back to ID order.
+    // Largest labeled area first, except sites over 1 ha, which go last (same order among themselves).
+    // Ties, such as unlabeled sites, fall back to ID order.
+    const big = (p: SiteProps) => Number(p.label_area_m2 > LARGE_SITE_M2);
     const items = [...state.byName.values()].sort(
-      (a, b) => b.label_area_m2 - a.label_area_m2 || a.site.localeCompare(b.site, undefined, { numeric: true }),
+      (a, b) =>
+        big(a) - big(b) ||
+        b.label_area_m2 - a.label_area_m2 ||
+        a.site.localeCompare(b.site, undefined, { numeric: true }),
     );
     list.replaceChildren(
       ...items.map((p) => {
