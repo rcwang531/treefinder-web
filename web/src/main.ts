@@ -85,6 +85,7 @@ async function main() {
 
   const map = createMap($("#map"), naip, state.overlays.naip);
   const panel = $("#layers");
+  const about = $<HTMLDialogElement>("#about");
   const hadMapHash = "map" in hash;
   await new Promise<void>((resolve) => map.once("load", () => resolve()));
   if (import.meta.env.DEV) (window as unknown as { map: maplibregl.Map }).map = map; // for browser tests
@@ -319,7 +320,7 @@ async function main() {
   panel.addEventListener("pointerdown", () => (pointerAt = Date.now()));
   panel.addEventListener("change", (ev) => {
     const el = ev.target as HTMLInputElement;
-    if ((el.type === "radio" || el.type === "checkbox") && Date.now() - pointerAt < 1000) {
+    if (["radio", "checkbox", "range"].includes(el.type) && Date.now() - pointerAt < 1000) {
       map.getCanvas().focus({ preventScroll: true });
     }
   });
@@ -345,6 +346,28 @@ async function main() {
     map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers }).length ? "pointer" : "";
   });
 
+  // ↑/↓ step through the site list in its current (sorted, filtered) order. Registered in the
+  // capture phase so the map doesn't also pan; ←/→ still pan the map.
+  function stepSite(dir: 1 | -1) {
+    const visible = [...(list.children as HTMLCollectionOf<HTMLLIElement>)].filter((li) => !li.hidden);
+    if (!visible.length) return;
+    const i = visible.findIndex((li) => li.dataset.site === state.site);
+    const next = i < 0 ? (dir > 0 ? 0 : visible.length - 1) : Math.min(Math.max(i + dir, 0), visible.length - 1);
+    if (next !== i) selectSite(visible[next].dataset.site!, true);
+  }
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      const t = e.target as HTMLElement;
+      if (t.matches("textarea, input[type=range], select") || e.metaKey || e.ctrlKey || e.altKey || about.open) return;
+      e.preventDefault();
+      e.stopPropagation();
+      stepSite(e.key === "ArrowDown" ? 1 : -1);
+    },
+    true,
+  );
+
   // Year keys work everywhere except while typing in a text field.
   document.addEventListener("keydown", (e) => {
     const t = e.target as HTMLElement;
@@ -356,7 +379,6 @@ async function main() {
   $("#drawer-toggle").onclick = () => document.body.classList.toggle("drawer-open");
 
   // ---------- about dialog ----------
-  const about = $<HTMLDialogElement>("#about");
   const openAbout = () => {
     about.showModal();
     writeHash({ about: "1" });
