@@ -134,17 +134,27 @@ async function main() {
 
   // ---------- coverage notice ----------
   const notice = $("#notice");
+  let noticeTimer = 0;
+  function showNotice(text: string, ms = 0) {
+    clearTimeout(noticeTimer);
+    notice.textContent = text;
+    notice.hidden = false;
+    if (ms) noticeTimer = window.setTimeout(() => (notice.hidden = true), ms);
+  }
   function renderNotice() {
     const cov = state.focus ? availability[state.focus] : undefined;
-    if (!cov || cov[state.year]) {
-      notice.hidden = true;
-      return;
-    }
-    const others = Object.entries(cov).map(([y, a]) => `${y} (${fmtDate(a.date)})`);
-    notice.hidden = false;
-    notice.textContent =
-      `No NAIP ${state.year} imagery covers ${state.focus}.` +
-      (others.length ? ` Available: ${others.join(", ")}.` : " No NAIP 2021–2023 found here.");
+    if (cov && !Object.keys(cov).length) showNotice(`No NAIP 2021–2023 imagery found for ${state.focus}.`);
+    else if (!cov || cov[state.year]) notice.hidden = true;
+  }
+  /** If the site in view has no NAIP for the selected year, switch to its latest available year. */
+  function ensureYearAvailable() {
+    const cov = state.focus ? availability[state.focus] : undefined;
+    if (!cov || cov[state.year]) return;
+    const best = years.filter((y) => cov[y]).pop();
+    if (!best) return;
+    const missing = state.year;
+    setYear(best);
+    showNotice(`No NAIP ${missing} imagery for ${state.focus}; showing ${best} (flown ${fmtDate(cov[best].date)}).`, 6000);
   }
   function updateFocus() {
     let focus = state.site;
@@ -158,6 +168,7 @@ async function main() {
       state.focus = focus;
       renderYears();
       renderNotice();
+      ensureYearAvailable();
     }
   }
   map.on("moveend", updateFocus);
@@ -243,12 +254,6 @@ async function main() {
     const p = state.site ? state.byName.get(state.site) : undefined;
     if (p && zoom) {
       zoomTo(p);
-      // Jump straight to a year that has imagery if the current one doesn't.
-      const av = availability[p.site];
-      if (av && !av[state.year]) {
-        const best = years.filter((y) => av[y]).pop();
-        if (best) setYear(best);
-      }
       document.body.classList.remove("drawer-open");
       list.querySelector(`li[data-site="${CSS.escape(p.site)}"]`)?.scrollIntoView({ block: "nearest" });
     }
