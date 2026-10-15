@@ -309,6 +309,28 @@ async function main() {
   });
   $("#drawer-toggle").onclick = () => document.body.classList.toggle("drawer-open");
 
+  // ---------- about dialog ----------
+  const about = $<HTMLDialogElement>("#about");
+  const openAbout = () => {
+    about.showModal();
+    writeHash({ about: "1" });
+  };
+  $("#about-btn").onclick = openAbout;
+  about.querySelector<HTMLButtonElement>(".close")!.onclick = () => about.close();
+  about.addEventListener("click", (e) => e.target === about && about.close()); // backdrop click
+  about.addEventListener("close", () => writeHash({ about: null }));
+  $("#copy-bib").onclick = async () => {
+    const btn = $("#copy-bib");
+    try {
+      await navigator.clipboard.writeText($("#bibtex").textContent!);
+      btn.textContent = "Copied";
+    } catch {
+      btn.textContent = "Copy failed";
+    }
+    setTimeout(() => (btn.textContent = "Copy BibTeX"), 1500);
+  };
+  if (hash.about) openAbout();
+
   // ---------- start ----------
   syncPanel();
   setYear(state.year);

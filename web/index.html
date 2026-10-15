@@ -11,6 +11,7 @@
       <button id="drawer-toggle" class="icon-btn" aria-label="Show site list" aria-controls="sidebar">☰</button>
       <h1>TreeFinder <span>dead-tree labels</span></h1>
       <nav id="tabs" class="tabs" role="tablist" aria-label="Label sets"></nav>
+      <button id="about-btn" class="about-btn" type="button" aria-haspopup="dialog">About</button>
       <div class="year-wrap">
         <span class="year-label">NAIP</span>
         <div id="years" class="seg" role="radiogroup" aria-label="NAIP year"></div>
@@ -51,6 +52,54 @@
         </section>
       </main>
     </div>
+    <dialog id="about" class="about" aria-labelledby="about-title">
+      <header>
+        <h2 id="about-title">About TreeFinder</h2>
+        <button class="close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="about-body">
+        <section>
+          <p class="venue">NeurIPS 2025 · Datasets &amp; Benchmarks Track</p>
+          <h3 class="paper-title">TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery</h3>
+          <p class="authors">Zhihao Wang, Cooper Li, Ruichen Wang, Lei Ma, George Hurtt, Xiaowei Jia, Gengchen Mai, Zhili Li, Yiqun Xie</p>
+          <nav class="links" aria-label="Project links">
+            <a href="https://neurips.cc/virtual/2025/loc/san-diego/poster/121794" target="_blank" rel="noopener">Paper (NeurIPS)</a>
+            <a href="https://github.com/zhwang0/treefinder" target="_blank" rel="noopener">Code (GitHub)</a>
+            <a href="https://www.kaggle.com/datasets/zhihaow/tree-finder" target="_blank" rel="noopener">Dataset (Kaggle)</a>
+            <a href="https://huggingface.co/datasets/ai-spatial/TreeFinder" target="_blank" rel="noopener">Dataset (Hugging Face)</a>
+          </nav>
+        </section>
+        <section>
+          <h4>Dataset</h4>
+          <p>TreeFinder is the first high-resolution benchmark for mapping individual tree mortality across the contiguous United States.
+            Dead trees were hand-annotated at the pixel level on 0.6 m NAIP aerial imagery, and the annotations were checked against multi-temporal NAIP and vegetation indices.</p>
+          <ul class="facts">
+            <li><b>~1,000</b> sites in 48 states</li>
+            <li><b>23,000+</b> hectares</li>
+            <li><b>20,000+</b> annotated dead trees</li>
+            <li><b>0.6 m</b> NAIP · R, G, B, NIR</li>
+            <li>Binary masks (1 = dead tree)</li>
+            <li>License: CC BY 4.0</li>
+          </ul>
+          <p class="muted small">Benchmarks cover random, cross-region, cross-climate and cross-forest-type splits for CNN and vision-transformer segmentation models.</p>
+        </section>
+        <section>
+          <h4>This viewer</h4>
+          <p id="about-viewer" class="small">Label polygons and masks are drawn from the dataset's annotation band over NAIP 2021–2023 mosaics from Microsoft Planetary Computer.
+            Use the year switch to compare the labels against each NAIP acquisition.
+            Viewer source: <a href="https://github.com/rcwang531/treefinder-web" target="_blank" rel="noopener">rcwang531/treefinder-web</a>.</p>
+        </section>
+        <section>
+          <h4 class="cite-head">Citation <button id="copy-bib" class="copy" type="button">Copy BibTeX</button></h4>
+          <pre id="bibtex">@inproceedings{wang2025treefinder,
+  title     = {TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery},
+  author    = {Wang, Zhihao and Li, Cooper and Wang, Ruichen and Ma, Lei and Hurtt, George and Jia, Xiaowei and Mai, Gengchen and Li, Zhili and Xie, Yiqun},
+  booktitle = {Proceedings of the 39th Conference on Neural Information Processing Systems (NeurIPS 2025), Datasets and Benchmarks Track},
+  year      = {2025}
+}</pre>
+        </section>
+      </div>
+    </dialog>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
