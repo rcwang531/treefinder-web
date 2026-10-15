@@ -12,7 +12,12 @@ import os
 import requests
 
 API = "https://planetarycomputer.microsoft.com/api/data/v1"
-TILE_QUERY = "collection=naip&assets=image&asset_bidx=image%7C1%2C2%2C3&format=jpeg"
+# NAIP band order is R, G, B, NIR.
+COMPOSITES = {
+    "true": "image%7C1%2C2%2C3",   # R, G, B
+    "false": "image%7C4%2C1%2C2",  # NIR, R, G (color infrared)
+}
+TILE_QUERY = "collection=naip&assets=image&asset_bidx={bidx}&format=jpeg"
 
 
 def register(year):
@@ -39,7 +44,10 @@ def main():
         sources.append({
             "year": year,
             "searchid": sid,
-            "tiles": f"{API}/mosaic/{sid}/tiles/WebMercatorQuad/{{z}}/{{x}}/{{y}}@1x?{TILE_QUERY}",
+            "tiles": {
+                name: f"{API}/mosaic/{sid}/tiles/WebMercatorQuad/{{z}}/{{x}}/{{y}}@1x?" + TILE_QUERY.format(bidx=bidx)
+                for name, bidx in COMPOSITES.items()
+            },
             "minzoom": 11,  # the mosaic endpoint returns empty tiles below z11
         })
         print(year, sid)

@@ -1,22 +1,29 @@
-// MapLibre setup: Esri context imagery at low zoom, one NAIP mosaic per year, and the
-// per-label-set overlays (site imagery, mask raster, label polygons, site outlines).
-import maplibregl, { type StyleSpecification } from "maplibre-gl";
+// MapLibre setup: Esri context imagery at low zoom, one NAIP mosaic per year (true or false
+// color), and the per-label-set overlays (site imagery, mask raster, label polygons, site outlines).
+import maplibregl, { type LngLatBoundsLike, type StyleSpecification } from "maplibre-gl";
 import { Protocol } from "pmtiles";
-import { dataUrl, type LabelSet, type NaipSources, type SiteCollection } from "./data";
+import { dataUrl, type Composite, type LabelSet, type NaipSources, type SiteCollection } from "./data";
 
 maplibregl.addProtocol("pmtiles", new Protocol().tile);
 
+/** The mask PNGs are magenta; in false color (pink vegetation) the layer is hue-rotated to cyan. */
+export const MASK_HUE_ROTATE: Record<Composite, number> = { true: 0, false: 240 };
+export const MASK_CSS: Record<Composite, string> = { true: "#ff00c8", false: "#00c8ff" };
+
 export const COLORS = {
   polygon: "#ffe14d",
+  polygonCasing: "#1b1f23",
   extent: "#ffffff",
-  buffer: "#7fd3ff",
   selected: "#00e5ff",
   point: "#ff4fd8",
 };
 
+/** Default view: the contiguous US. */
+export const HOME_BOUNDS: LngLatBoundsLike = [[-125, 24.3], [-66.9, 49.5]];
+
 const ESRI_MAXZOOM = 11.5; // Esri context is hidden once NAIP takes over
 
-export function createMap(container: HTMLElement, naip: NaipSources): maplibregl.Map {
+export function createMap(container: HTMLElement, naip: NaipSources, composite: Composite): maplibregl.Map {
   const style: StyleSpecification = {
     version: 8,
     glyphs: "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
@@ -33,7 +40,7 @@ export function createMap(container: HTMLElement, naip: NaipSources): maplibregl
           `naip-${y.year}`,
           {
             type: "raster" as const,
-            tiles: [y.tiles],
+            tiles: [y.tiles[composite]],
             tileSize: 256,
             minzoom: y.minzoom,
             maxzoom: 18,
@@ -55,16 +62,29 @@ export function createMap(container: HTMLElement, naip: NaipSources): maplibregl
     ],
   };
 
-  return new maplibregl.Map({
+  const map = new maplibregl.Map({
     container,
     style,
-    center: [-98.5, 39.5],
-    zoom: 3.6,
+    bounds: HOME_BOUNDS,
     hash: "map",
     maxPitch: 0,
     dragRotate: false,
-    attributionControl: { compact: true },
+    attributionControl: false,
   });
+  map.touchZoomRotate.disableRotation();
+
+  // Source credits stay collapsed behind the (i) button. MapLibre expands them whenever a
+  // source's attribution first appears, so undo any expansion the user didn't click for.
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), "bottom-right");
+  const attrib = container.querySelector<HTMLElement>(".maplibregl-ctrl-attrib")!;
+  let lastClick = 0;
+  attrib.addEventListener("click", () => (lastClick = Date.now()), true);
+  new MutationObserver(() => {
+    if (attrib.classList.contains("maplibregl-compact-show") && Date.now() - lastClick > 500) {
+      attrib.classList.remove("maplibregl-compact-show");
+    }
+  }).observe(attrib, { attributes: true, attributeFilter: ["class"] });
+  return map;
 }
 
 export function showYear(map: maplibregl.Map, naip: NaipSources, year: number) {
@@ -73,20 +93,55 @@ export function showYear(map: maplibregl.Map, naip: NaipSources, year: number) {
   }
 }
 
+export function showComposite(map: maplibregl.Map, naip: NaipSources, composite: Composite) {
+  for (const y of naip.years) {
+    (map.getSource(`naip-${y.year}`) as maplibregl.RasterTileSource).setTiles([y.tiles[composite]]);
+  }
+}
+
+/** Zoom buttons plus a "home" button that returns to the default view. */
+export function addNavigation(map: maplibregl.Map, onHome: () => void) {
+  map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+  map.addControl(
+    {
+      onAdd() {
+        const group = document.createElement("div");
+        group.className = "maplibregl-ctrl maplibregl-ctrl-group";
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "home-ctrl";
+        btn.title = "Default view";
+        btn.setAttribute("aria-label", "Default view");
+        btn.innerHTML =
+          '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3 2.5 11.2l1.3 1.5L5 11.7V20a1 1 0 0 0 1 1h4.5v-6h3v6H18a1 1 0 0 0 1-1v-8.3l1.2 1 1.3-1.5Z"/></svg>';
+        btn.onclick = onHome;
+        group.append(btn);
+        return group;
+      },
+      onRemove() {},
+    },
+    "top-left",
+  );
+}
+
+export function goHome(map: maplibregl.Map) {
+  map.fitBounds(HOME_BOUNDS, { duration: 800 });
+}
+
 const LS_LAYERS = [
   "site-imagery",
   "mask",
-  "buffers-line",
   "extents-fill",
   "extents-line",
   "extents-selected",
   "labels-fill",
+  "labels-casing",
   "labels-line",
   "points-cluster",
   "points-cluster-count",
   "points",
 ];
-const LS_SOURCES = ["site-rgb", "site-nir", "mask", "buffers", "extents", "labels", "points"];
+const LS_SOURCES = ["site-rgb", "site-nir", "mask", "extents", "labels", "points"];
 
 /** Replace all label-set overlays with the ones for `ls`. */
 export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollection) {
@@ -109,7 +164,6 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
   if (ls.layers.rgb) map.addSource("site-rgb", { type: "raster", url: pm(ls.layers.rgb), tileSize: 512 });
   if (ls.layers.nir) map.addSource("site-nir", { type: "raster", url: pm(ls.layers.nir), tileSize: 512 });
   if (ls.layers.mask) map.addSource("mask", { type: "raster", url: pm(ls.layers.mask), tileSize: 512 });
-  map.addSource("buffers", { type: "geojson", data: dataUrl(`${ls.id}/${ls.layers.buffers}`) });
   map.addSource("extents", { type: "geojson", data: sites, promoteId: "site" });
   map.addSource("labels", { type: "vector", url: pm(ls.layers.labels) });
   map.addSource("points", { type: "geojson", data: points, cluster: true, clusterMaxZoom: 8, clusterRadius: 40 });
@@ -126,13 +180,6 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
       paint: { "raster-resampling": "nearest", "raster-fade-duration": 0 },
     });
   }
-  map.addLayer({
-    id: "buffers-line",
-    type: "line",
-    source: "buffers",
-    minzoom: outlineMin,
-    paint: { "line-color": COLORS.buffer, "line-width": 1.2, "line-dasharray": [3, 2], "line-opacity": 0.9 },
-  });
   map.addLayer({
     id: "extents-fill", // invisible hit target for clicks
     type: "fill",
@@ -159,14 +206,25 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
     type: "fill",
     source: "labels",
     "source-layer": "labels",
-    paint: { "fill-color": COLORS.polygon, "fill-opacity": 0.15 },
+    paint: { "fill-color": COLORS.polygon, "fill-opacity": 0.2 },
+  });
+  // A dark casing under the yellow outline keeps small polygons visible on bright imagery.
+  // MapLibre only allows ["zoom"] at the top of an interpolate, so the casing gets its own curve.
+  const width = (pad: number): maplibregl.ExpressionSpecification =>
+    ["interpolate", ["linear"], ["zoom"], 12, 1.2 + pad, 16, 2 + pad, 19, 3 + pad];
+  map.addLayer({
+    id: "labels-casing",
+    type: "line",
+    source: "labels",
+    "source-layer": "labels",
+    paint: { "line-color": COLORS.polygonCasing, "line-opacity": 0.6, "line-width": width(2) },
   });
   map.addLayer({
     id: "labels-line",
     type: "line",
     source: "labels",
     "source-layer": "labels",
-    paint: { "line-color": COLORS.polygon, "line-width": ["interpolate", ["linear"], ["zoom"], 14, 0.8, 18, 2] },
+    paint: { "line-color": COLORS.polygon, "line-width": width(0) },
   });
   map.addLayer({
     id: "points-cluster",
@@ -212,6 +270,7 @@ export function setSelected(map: maplibregl.Map, site: string | null) {
 }
 
 export interface OverlayState {
+  naip: Composite;
   polygons: boolean;
   mask: boolean;
   maskOpacity: number;
@@ -225,10 +284,13 @@ export function applyOverlays(map: maplibregl.Map, o: OverlayState) {
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
   };
   vis("labels-fill", o.polygons);
+  vis("labels-casing", o.polygons);
   vis("labels-line", o.polygons);
   vis("mask", o.mask);
-  if (map.getLayer("mask")) map.setPaintProperty("mask", "raster-opacity", o.maskOpacity);
-  vis("buffers-line", o.outlines);
+  if (map.getLayer("mask")) {
+    map.setPaintProperty("mask", "raster-opacity", o.maskOpacity);
+    map.setPaintProperty("mask", "raster-hue-rotate", MASK_HUE_ROTATE[o.naip]);
+  }
   vis("extents-line", o.outlines);
 
   if (map.getLayer("site-imagery")) {

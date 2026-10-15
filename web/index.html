@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TreeFinder Labels</title>
+    <title>TreeFinder Dashboard</title>
     <meta name="description" content="Hand-annotated dead-tree segmentation labels over NAIP imagery, 2021–2023." />
   </head>
   <body>
     <header class="topbar">
       <button id="drawer-toggle" class="icon-btn" aria-label="Show site list" aria-controls="sidebar">☰</button>
-      <h1>TreeFinder <span>dead-tree labels</span></h1>
+      <h1><button id="home-title" class="title-btn" type="button" title="Back to the default view">TreeFinder Dashboard</button></h1>
       <nav id="tabs" class="tabs" role="tablist" aria-label="Label sets"></nav>
       <button id="about-btn" class="about-btn" type="button" aria-haspopup="dialog">About</button>
       <div class="year-wrap">
@@ -34,19 +34,33 @@
         <div id="notice" class="notice" role="status" hidden></div>
         <section id="layers" class="panel" aria-label="Layers">
           <h2>Layers</h2>
-          <label class="check"><input type="checkbox" data-ov="polygons" />
-            <i class="sw sw-poly"></i> Label polygons</label>
-          <label class="check"><input type="checkbox" data-ov="mask" />
-            <i class="sw sw-mask"></i> Label mask (raster)</label>
-          <input type="range" min="0" max="1" step="0.05" data-ov="maskOpacity" aria-label="Mask opacity" />
-          <label class="check"><input type="checkbox" data-ov="outlines" />
-            <i class="sw sw-extent"></i> Site extent <i class="sw sw-buffer"></i> buffer</label>
+          <fieldset>
+            <legend>NAIP composite</legend>
+            <label class="check"><input type="radio" name="naip" value="true" data-ov="naip" /> True color (R, G, B)</label>
+            <label class="check"><input type="radio" name="naip" value="false" data-ov="naip" /> False color (NIR, R, G)</label>
+          </fieldset>
+          <fieldset>
+            <legend>Labels</legend>
+            <label class="check"><input type="checkbox" data-ov="polygons" />
+              <i class="sw sw-poly"></i> Label polygons</label>
+            <label class="check"><input type="checkbox" data-ov="mask" />
+              <i class="sw sw-mask"></i> Label mask (raster)</label>
+            <label class="slider mask-slider" id="mask-opacity">
+              <span>Mask opacity <output data-for="maskOpacity"></output></span>
+              <input type="range" min="0" max="1" step="0.05" data-ov="maskOpacity" />
+            </label>
+            <label class="check"><input type="checkbox" data-ov="outlines" />
+              <i class="sw sw-extent"></i> Site extent</label>
+          </fieldset>
           <fieldset id="imagery-controls">
             <legend>Site imagery (from the dataset)</legend>
             <label class="check"><input type="radio" name="imagery" value="off" data-ov="imagery" /> Off</label>
             <label class="check"><input type="radio" name="imagery" value="rgb" data-ov="imagery" /> True color</label>
             <label class="check"><input type="radio" name="imagery" value="nir" data-ov="imagery" /> False color (NIR)</label>
-            <input type="range" min="0" max="1" step="0.05" data-ov="imageryOpacity" aria-label="Site imagery opacity" />
+            <label class="slider">
+              <span>Imagery opacity <output data-for="imageryOpacity"></output></span>
+              <input type="range" min="0" max="1" step="0.05" data-ov="imageryOpacity" />
+            </label>
           </fieldset>
           <p class="muted small">Keys <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> switch NAIP year.</p>
         </section>

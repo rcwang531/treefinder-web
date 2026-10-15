@@ -2,8 +2,8 @@
 
 A static web map of the hand-annotated dead-tree segmentation dataset, shown over NAIP 2021–2023.
 
-- **Base map:** NAIP mosaics for each year, served as tiles by Microsoft Planetary Computer, with Esri imagery for context below zoom 11.
-- **Per label set:** site extents with a 50 m buffer, vectorized label polygons, the label mask raster, and the site's own true-color and NIR imagery.
+- **Base map:** NAIP mosaics for each year, in true color (R,G,B) or false color (NIR,R,G), served as tiles by Microsoft Planetary Computer, with Esri imagery for context below zoom 11.
+- **Per label set:** site extents, vectorized label polygons, the label mask raster, and (locally only) the site's own true-color and NIR imagery.
 - **Tabs:** one per label set listed in `web/public/data/manifest.json`.
 
 No server is needed. Everything is precomputed into static files (GeoJSON and PMTiles), which any static host can serve over HTTP range requests.
@@ -13,6 +13,7 @@ datasets/                 input GeoTIFFs (R, G, B, N, NDVI, label; float32, NaN 
 pipeline/
   environment.yml         conda env (GDAL, rasterio, geopandas, tippecanoe, rio-pmtiles, Node 20)
   build_labelset.py       folder of TIFFs -> web/public/data/<id>/ + manifest.json entry
+  site_registry.csv       permanent site IDs (e.g. AL_001) and "labels last refined" dates
   register_naip.py        per-year NAIP mosaic tile URLs -> naip_sources.json
   naip_availability.py    per-site NAIP years and acquisition dates -> naip_availability.json
   work/                   intermediate per-site rasters (safe to delete)
@@ -35,11 +36,20 @@ cd pipeline
 python register_naip.py --out ../web/public/data            # once; the search ids are stable
 python build_labelset.py ../datasets/all_data_20261014 \
     --csv ../datasets/datasummary_20261014.csv \
-    --id original --name "Original labels" --out ../web/public/data
+    --id original --name "Original labels" --out ../web/public/data --no-imagery
 python naip_availability.py --data ../web/public/data       # after every new label set
 ```
 
-The label set build takes about 10–15 minutes for 1,001 sites with 8 workers. Use `--limit 10` for a quick test and `--skip-rasters` to build only the outlines and polygons.
+A build with `--no-imagery` takes about 10 minutes for 1,001 sites with 8 workers, and about 35 minutes with imagery. Use `--limit 10` for a quick test and `--skip-rasters` to build only the outlines and polygons.
+
+### Site IDs and refine dates
+
+`pipeline/site_registry.csv` gives every source file a permanent ID, made of the state code and a number (`AL_001`, `CO_014`, …), plus a "labels last refined" date. The website shows the ID; you can still find a site by its file name using the search box.
+
+- A file keeps its ID across rebuilds and label sets.
+- New files get the next free number for their state, taken from the CSV's `State` column.
+- To record a refinement, pass `--refined-date YYYY-MM-DD` to `build_labelset.py`. It sets the date for every file in that run. New files get today's date by default.
+- You can also edit the dates directly in the CSV and rebuild.
 
 ## Add a new label set (for example, newly drawn labels)
 
@@ -47,11 +57,11 @@ Put the TIFFs in a folder, using the same 6-band layout as the original data. Th
 
 ```bash
 python build_labelset.py /path/to/new_labels --csv /path/to/summary.csv \
-    --id new_2026 --name "New labels" --out ../web/public/data
+    --id new_2026 --name "New labels" --out ../web/public/data --no-imagery --refined-date 2026-11-01
 python naip_availability.py --data ../web/public/data
 ```
 
-A new tab appears in the web app with no code changes. The CSV is optional; it only adds state, climate and species to the site card. Re-running with the same `--id` replaces that set.
+A new tab appears in the web app with no code changes. The CSV is optional; it adds state and climate to the site card and decides the state code of new site IDs. Re-running with the same `--id` replaces that set. Keep `--no-imagery` for anything that goes on GitHub: the imagery files are larger than GitHub's 100 MB limit.
 
 ## Run the web app
 
@@ -62,7 +72,7 @@ npm run dev        # http://localhost:5173 (use VS Code port forwarding from the
 npm run build      # static site in web/dist/, including the data/ folder
 ```
 
-URL hash state: `#map=z/lat/lon&y=<year>&t=<labelset>&s=<site>`. Keys `1` `2` `3` switch the NAIP year.
+URL hash state: `#map=z/lat/lon&y=<year>&t=<labelset>&s=<site ID>&about=1`. Keys `1` `2` `3` switch the NAIP year. The home button, or clicking the title, returns to the default view.
 
 ## Deploy
 

@@ -1,8 +1,19 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import type maplibregl from "maplibre-gl";
-import { loadSites, loadStatic, type Availability, type LabelSet, type SiteCollection, type SiteProps } from "./data";
-import { applyOverlays, createMap, setLabelSet, setSelected, showYear, type OverlayState } from "./map";
+import { loadSites, loadStatic, type LabelSet, type SiteCollection, type SiteProps } from "./data";
+import {
+  addNavigation,
+  applyOverlays,
+  createMap,
+  goHome,
+  MASK_CSS,
+  setLabelSet,
+  setSelected,
+  showComposite,
+  showYear,
+  type OverlayState,
+} from "./map";
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
@@ -25,10 +36,11 @@ function writeHash(updates: Record<string, string | null>) {
 }
 
 // ---- per-viewer layer preferences (best effort) ----
-const OVERLAY_KEY = "treefinder.overlays";
+const OVERLAY_KEY = "treefinder.overlays.v2"; // bump when defaults change so old choices don't stick
 const defaultOverlays: OverlayState = {
+  naip: "true",
   polygons: true,
-  mask: false,
+  mask: true,
   maskOpacity: 0.7,
   outlines: true,
   imagery: "off",
@@ -66,13 +78,17 @@ async function main() {
     overlays: loadOverlays(),
     sites: null as SiteCollection | null,
     byName: new Map<string, SiteProps>(),
-    focus: null as string | null, // site whose NAIP coverage drives the notice / year chips
+    focus: null as string | null, // site whose NAIP coverage drives the notice / year buttons
   };
 
-  const map = createMap($("#map"), naip);
+  const map = createMap($("#map"), naip, state.overlays.naip);
   const panel = $("#layers");
   const hadMapHash = "map" in hash;
   await new Promise<void>((resolve) => map.once("load", () => resolve()));
+  if (import.meta.env.DEV) (window as unknown as { map: maplibregl.Map }).map = map; // for browser tests
+  const home = () => goHome(map);
+  addNavigation(map, home);
+  $("#home-title").onclick = home;
 
   // ---------- tabs ----------
   const tabs = $("#tabs");
@@ -101,7 +117,7 @@ async function main() {
         b.textContent = String(y);
         b.setAttribute("aria-checked", String(y === state.year));
         const acq = cov?.[y];
-        if (cov && !acq) b.classList.add("unavailable");
+        b.disabled = Boolean(cov && !acq); // no NAIP this year for the site in view
         b.title = acq ? `NAIP flown ${fmtDate(acq.date)} (${acq.gsd ?? "?"} m)` : cov ? "No NAIP this year here" : "";
         b.onclick = () => setYear(y);
         return b;
@@ -152,22 +168,16 @@ async function main() {
   const onlyLabeled = $<HTMLInputElement>("#only-labeled");
   const count = $("#count");
 
-  function chips(av: Availability[string] | undefined) {
-    return years
-      .map((y) => `<span class="chip${av?.[y] ? " on" : ""}" title="NAIP ${y}${av?.[y] ? "" : ": none"}">${String(y).slice(2)}</span>`)
-      .join("");
-  }
   function renderList() {
     const items = [...state.byName.values()].sort((a, b) => a.site.localeCompare(b.site, undefined, { numeric: true }));
     list.replaceChildren(
       ...items.map((p) => {
         const li = document.createElement("li");
         li.dataset.site = p.site;
-        li.dataset.search = `${p.site} ${p.state ?? ""}`.toLowerCase();
+        li.dataset.search = `${p.site} ${p.state ?? ""} ${p.file}`.toLowerCase();
         li.dataset.labeled = String(p.label_px > 0);
         li.innerHTML = `<button type="button"><span class="name">${esc(p.site)}</span>
-          <span class="meta">${esc(p.state ?? "")} · ${p.label_px > 0 ? `${fmtArea(p.label_area_m2)} dead` : "no labels"}</span>
-          <span class="chips">${chips(availability[p.site])}</span></button>`;
+          <span class="meta">${esc(p.state ?? "")} · ${p.label_px > 0 ? `${fmtArea(p.label_area_m2)} dead` : "no labels"}</span></button>`;
         li.querySelector("button")!.onclick = () => selectSite(p.site, true);
         return li;
       }),
@@ -210,7 +220,7 @@ async function main() {
         <dt>Dead trees</dt><dd>${p.label_px > 0 ? `${fmtArea(p.label_area_m2)} · ${p.n_polygons} polygons` : "none labeled"}</dd>
         <dt>Climate</dt><dd>${esc(p.climate || "—")} · zone ${esc(p.hardiness_zone || "—")}</dd>
         <dt>NAIP</dt><dd>${naipRows}</dd>
-        ${p.species ? `<dt>Species</dt><dd>${esc(p.species)}</dd>` : ""}
+        <dt>Labels refined</dt><dd>${p.label_refined ? fmtDate(p.label_refined) : "—"}</dd>
         ${p.has_imagery ? "" : `<dt>Note</dt><dd>No site imagery in this file</dd>`}
       </dl>
       <button class="zoom" type="button">Zoom to site</button>`;
@@ -250,12 +260,16 @@ async function main() {
     renderTabs();
     state.sites = await loadSites(ls);
     state.byName = new Map(state.sites.features.map((f) => [f.properties.site, f.properties]));
+    // Links made before site IDs existed carry the source file name; map them to the ID.
+    if (state.site && !state.byName.has(state.site)) {
+      state.site = state.sites.features.find((f) => f.properties.file === state.site)?.properties.site ?? null;
+    }
     setLabelSet(map, ls, state.sites);
     // Site imagery is optional per label set (left out of the GitHub Pages build for size).
     $("#imagery-controls").hidden = !ls.layers.rgb && !ls.layers.nir;
     if (!ls.layers.mask) state.overlays.mask = false;
     panel.querySelector<HTMLElement>("label:has([data-ov=mask])")!.hidden = !ls.layers.mask;
-    panel.querySelector<HTMLElement>("[data-ov=maskOpacity]")!.hidden = !ls.layers.mask;
+    $("#mask-opacity").hidden = !ls.layers.mask;
     applyOverlays(map, state.overlays);
     renderList();
     selectSite(state.site, false);
@@ -270,6 +284,10 @@ async function main() {
       else if (el.type === "radio") el.checked = el.value === v;
       else el.value = String(v);
     }
+    panel.style.setProperty("--sw-mask", MASK_CSS[state.overlays.naip]); // swatch + slider follow the mask color
+    for (const out of panel.querySelectorAll<HTMLOutputElement>("output[data-for]")) {
+      out.value = `${Math.round(Number(state.overlays[out.dataset.for as keyof OverlayState]) * 100)}%`;
+    }
   }
   panel.addEventListener("input", (ev) => {
     const el = ev.target as HTMLInputElement;
@@ -277,7 +295,9 @@ async function main() {
     if (!key) return;
     const o = state.overlays as unknown as Record<string, unknown>;
     o[key] = el.type === "checkbox" ? el.checked : el.type === "range" ? Number(el.value) : el.value;
+    if (key === "naip") showComposite(map, naip, state.overlays.naip);
     applyOverlays(map, state.overlays);
+    syncPanel();
     saveOverlays(state.overlays);
   });
   panel.querySelector("h2")!.addEventListener("click", () => panel.classList.toggle("collapsed"));
@@ -305,7 +325,8 @@ async function main() {
   document.addEventListener("keydown", (e) => {
     if ((e.target as HTMLElement).closest("input, textarea")) return;
     const i = Number(e.key) - 1;
-    if (i >= 0 && i < years.length) setYear(years[i]);
+    const btn = yearsEl.children[i] as HTMLButtonElement | undefined;
+    if (btn && !btn.disabled) setYear(years[i]);
   });
   $("#drawer-toggle").onclick = () => document.body.classList.toggle("drawer-open");
 

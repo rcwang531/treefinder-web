@@ -3,3 +3,4 @@ datasets/
 pipeline/work/
 pipeline/__pycache__/
 scratch_out/
+pipeline/*.log

@@ -5,14 +5,13 @@
       "name": "Original labels",
       "description": "Hand-annotated dead-tree masks, dataset 2026-10-14",
       "source": "/gpfs/data1/xiegp/zhihao_ruichen/treefinder_web/datasets/all_data_20261014",
-      "created": "2026-10-14",
+      "created": "2026-10-15",
       "n_sites": 1001,
       "n_polygons": 9381,
       "buffer_m": 50.0,
       "raster_maxzoom": 17,
       "layers": {
         "sites": "sites.geojson",
-        "buffers": "buffers.geojson",
         "labels": "labels.pmtiles",
         "mask": "mask.pmtiles"
       }

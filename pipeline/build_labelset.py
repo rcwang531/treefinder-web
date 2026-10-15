@@ -3,13 +3,15 @@
 Input:  a folder of site GeoTIFFs (bands R, G, B, N, NDVI, label; float32, NaN = nodata)
         plus an optional summary CSV keyed by "File Name".
 Output (in <out>/<id>/):
-    sites.geojson      site extents (EPSG:4326) with CSV attributes and label stats
-    buffers.geojson    extents expanded by --buffer-m
+    sites.geojson      site extents (EPSG:4326) with site ID, CSV attributes and label stats
     labels.pmtiles     vectorized label polygons (vector tiles, layer "labels")
     mask.pmtiles       label mask raster tiles (PNG, RGBA)
     rgb.pmtiles        site true-color imagery (WEBP, RGBA)
     nir.pmtiles        site false-color imagery, N/R/G (WEBP, RGBA)
 and registers the set in <out>/manifest.json.
+
+Each source file gets a permanent site ID (state code + number, e.g. AL_001) and a
+"labels last refined" date from site_registry.csv, which this script extends with any new files.
 
 Example:
     python build_labelset.py ../datasets/all_data_20261014 \
@@ -17,8 +19,9 @@ Example:
         --id original --name "Original labels" --out ../web/public/data
 """
 import argparse
-import ast
+import csv
 import datetime
+import re
 import glob
 import json
 import os
@@ -42,6 +45,20 @@ WGS84 = CRS.from_epsg(4326)
 WEB = CRS.from_epsg(3857)
 # Web Mercator pixel size at zoom 18 (256-px tiles); site rasters are warped onto this grid.
 WEB_RES = 156543.03392804097 / 2**18
+REGISTRY = os.path.join(os.path.dirname(os.path.abspath(__file__)), "site_registry.csv")
+REGISTRY_FIELDS = ["site_id", "file_name", "state", "label_refined"]
+STATE_CODES = {
+    "Alabama": "AL", "Alaska": "AK", "Arizona": "AZ", "Arkansas": "AR", "California": "CA",
+    "Colorado": "CO", "Connecticut": "CT", "Delaware": "DE", "Florida": "FL", "Georgia": "GA",
+    "Hawaii": "HI", "Idaho": "ID", "Illinois": "IL", "Indiana": "IN", "Iowa": "IA", "Kansas": "KS",
+    "Kentucky": "KY", "Louisiana": "LA", "Maine": "ME", "Maryland": "MD", "Massachusetts": "MA",
+    "Michigan": "MI", "Minnesota": "MN", "Mississippi": "MS", "Missouri": "MO", "Montana": "MT",
+    "Nebraska": "NE", "Nevada": "NV", "New Hampshire": "NH", "New Jersey": "NJ", "New Mexico": "NM",
+    "New York": "NY", "North Carolina": "NC", "North Dakota": "ND", "Ohio": "OH", "Oklahoma": "OK",
+    "Oregon": "OR", "Pennsylvania": "PA", "Rhode Island": "RI", "South Carolina": "SC",
+    "South Dakota": "SD", "Tennessee": "TN", "Texas": "TX", "Utah": "UT", "Vermont": "VT",
+    "Virginia": "VA", "Washington": "WA", "West Virginia": "WV", "Wisconsin": "WI", "Wyoming": "WY",
+}
 MASK_RGB = (255, 0, 200)  # magenta: contrasts with both green canopy and brown dead trees
 RASTER_KINDS = {
     # kind: (pmtiles format, resampling for color bands)
@@ -154,17 +171,50 @@ def load_csv(path):
     df = pd.read_csv(path, dtype=str).fillna("")
     out = {}
     for row in df.to_dict("records"):
-        try:
-            species = "; ".join(ast.literal_eval(row.get("Tree Species", "")) or [])
-        except (ValueError, SyntaxError):
-            species = row.get("Tree Species", "")
+        # Species lists are not validated yet, so they are left out of the web data.
         out[row["File Name"]] = {
             "state": row.get("State", ""),
             "climate": row.get("Koppen Geiger Climate", ""),
             "hardiness_zone": row.get("USDA Plant Hardness Zone", ""),
-            "species": species,
         }
     return out
+
+
+def natural_key(name):
+    return [int(t) if t.isdigit() else t.lower() for t in re.split(r"(\d+)", name)]
+
+
+def update_registry(files, attrs, refined_date):
+    """Return {file_name: registry row}, assigning IDs to files not yet in site_registry.csv.
+
+    IDs are permanent: a file keeps its ID across rebuilds and label sets. New files are numbered
+    after the highest existing number for their state, in natural file-name order. With
+    refined_date set, the processed files' "label_refined" date is updated too.
+    """
+    rows = {}
+    if os.path.exists(REGISTRY):
+        with open(REGISTRY, newline="") as f:
+            rows = {r["file_name"]: r for r in csv.DictReader(f)}
+    next_num = {}
+    for r in rows.values():
+        code, num = r["site_id"].rsplit("_", 1)
+        next_num[code] = max(next_num.get(code, 0), int(num))
+    today = datetime.date.today().isoformat()
+    for name in sorted(files, key=natural_key):
+        if name in rows:
+            if refined_date:
+                rows[name]["label_refined"] = refined_date
+            continue
+        state = attrs.get(name, {}).get("state", "")
+        code = STATE_CODES.get(state, "US")
+        next_num[code] = next_num.get(code, 0) + 1
+        rows[name] = {"site_id": f"{code}_{next_num[code]:03d}", "file_name": name, "state": state,
+                      "label_refined": refined_date or today}
+    with open(REGISTRY, "w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=REGISTRY_FIELDS)
+        w.writeheader()
+        w.writerows(sorted(rows.values(), key=lambda r: natural_key(r["site_id"])))
+    return rows
 
 
 def write_geojson(path, feats):
@@ -186,7 +236,9 @@ def main():
     ap.add_argument("--description", default="")
     ap.add_argument("--out", required=True, help="web data root, e.g. ../web/public/data")
     ap.add_argument("--work", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "work"))
-    ap.add_argument("--buffer-m", type=float, default=50.0)
+    ap.add_argument("--buffer-m", type=float, default=50.0, help="margin around each site for zoom-to framing")
+    ap.add_argument("--refined-date", help="set 'labels last refined' (YYYY-MM-DD) for these files; "
+                    "new files default to today")
     ap.add_argument("--minzoom", type=int, default=12)
     ap.add_argument("--maxzoom", type=int, default=18)
     ap.add_argument("--workers", type=int, default=8)
@@ -200,6 +252,7 @@ def main():
     if not files:
         sys.exit(f"no .tif files in {args.src}")
     attrs = load_csv(args.csv)
+    registry = update_registry([os.path.splitext(os.path.basename(f))[0] for f in files], attrs, args.refined_date)
     out_dir = os.path.join(args.out, args.id)
     work = os.path.join(args.work, args.id)
     shutil.rmtree(work, ignore_errors=True)
@@ -215,20 +268,22 @@ def main():
 
     sites, buffers = [], []
     with open(os.path.join(work, "labels.geojsonseq"), "w") as f:
-        for r in results:
+        for r in sorted(results, key=lambda r: natural_key(registry[r["site"]]["site_id"])):
+            reg = registry[r["site"]]
             props = {
-                "site": r["site"], **attrs.get(r["site"], {}),
+                "site": reg["site_id"], "file": r["site"], **attrs.get(r["site"], {}),
+                "label_refined": reg["label_refined"],
                 "crs": r["crs"], "label_px": r["label_px"], "label_area_m2": r["label_area_m2"],
                 "n_polygons": r["n_polygons"], "has_imagery": r["has_imagery"],
             }
             props["bbox"] = [round(v, 7) for v in shape(r["buffer"]).bounds]
             sites.append({"type": "Feature", "properties": props, "geometry": r["extent"]})
-            buffers.append({"type": "Feature", "properties": {"site": r["site"]}, "geometry": r["buffer"]})
+            buffers.append({"type": "Feature", "properties": {"site": reg["site_id"]}, "geometry": r["buffer"]})
             for p in r["polygons"]:
+                p["properties"]["site"] = reg["site_id"]
                 f.write(json.dumps(p, separators=(",", ":")) + "\n")
     write_geojson(os.path.join(out_dir, "sites.geojson"), sites)
-    write_geojson(os.path.join(out_dir, "buffers.geojson"), buffers)
-    write_geojson(os.path.join(work, "cutline.geojson"), buffers)
+    write_geojson(os.path.join(work, "cutline.geojson"), buffers)  # limits which raster tiles get built
 
     run([
         "tippecanoe", "-o", os.path.join(out_dir, "labels.pmtiles"), "--force", "-l", "labels",
@@ -236,7 +291,7 @@ def main():
         "--no-tiny-polygon-reduction", "--quiet", os.path.join(work, "labels.geojsonseq"),
     ])
 
-    layers = {"sites": "sites.geojson", "buffers": "buffers.geojson", "labels": "labels.pmtiles"}
+    layers = {"sites": "sites.geojson", "labels": "labels.pmtiles"}
     if not args.skip_rasters:
         for kind, (fmt, _) in RASTER_KINDS.items():
             tifs = [r["rasters"][kind] for r in results if kind in r["rasters"]]

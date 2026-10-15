@@ -10,7 +10,6 @@ export interface LabelSet {
   raster_maxzoom: number;
   layers: {
     sites: string;
-    buffers: string;
     labels: string;
     mask?: string;
     rgb?: string;
@@ -18,9 +17,12 @@ export interface LabelSet {
   };
 }
 
+/** NAIP band composite: true color (R,G,B) or false color (NIR,R,G). */
+export type Composite = "true" | "false";
+
 export interface NaipYear {
   year: number;
-  tiles: string;
+  tiles: Record<Composite, string>;
   minzoom: number;
 }
 
@@ -39,11 +41,15 @@ export interface NaipAcquisition {
 export type Availability = Record<string, Record<string, NaipAcquisition>>;
 
 export interface SiteProps {
+  /** Permanent site ID, e.g. "AL_001" (see pipeline/site_registry.csv). */
   site: string;
+  /** Source GeoTIFF name; searchable but not displayed. */
+  file: string;
   state?: string;
   climate?: string;
   hardiness_zone?: string;
-  species?: string;
+  /** "Labels last refined" date, YYYY-MM-DD. */
+  label_refined?: string;
   crs: string;
   label_px: number;
   label_area_m2: number;
