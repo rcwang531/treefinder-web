@@ -101,6 +101,10 @@ export function showComposite(map: maplibregl.Map, naip: NaipSources, composite:
 /** Zoom buttons plus a "home" button that returns to the default view. */
 export function addNavigation(map: maplibregl.Map, onHome: () => void) {
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-left");
+  // Scale bars: metric (the dataset's units) above imperial. Controls added later to a bottom
+  // corner stack above earlier ones, so imperial goes in first.
+  map.addControl(new maplibregl.ScaleControl({ unit: "imperial", maxWidth: 120 }), "bottom-left");
+  map.addControl(new maplibregl.ScaleControl({ unit: "metric", maxWidth: 120 }), "bottom-left");
   map.addControl(
     {
       onAdd() {

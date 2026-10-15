@@ -90,6 +90,8 @@ kbd {
   cursor: pointer;
 }
 .title-btn:hover { color: var(--accent); }
+.title-btn { display: inline-flex; align-items: center; gap: 8px; }
+.logo { display: block; image-rendering: pixelated; }
 .icon-btn {
   display: none;
   border: 1px solid var(--border);
@@ -325,11 +327,11 @@ kbd {
     box-shadow: var(--shadow);
   }
   body.drawer-open .sidebar { transform: none; }
-  .panel { top: auto; bottom: 28px; right: 16px; left: 16px; width: auto; max-height: 45vh; overflow-y: auto; }
+  .panel { top: auto; bottom: 64px; right: 16px; left: 16px; width: auto; max-height: 45vh; overflow-y: auto; } /* clear of the scale bars */
   .panel.collapsed > :not(h2) { display: none; }
   .panel h2 { cursor: pointer; }
   .notice { max-width: calc(100% - 32px); }
 }
 @media (max-width: 480px) {
-  .topbar h1 { display: none; }
+  .title-text { display: none; } /* the logo alone stays as the home button */
 }
