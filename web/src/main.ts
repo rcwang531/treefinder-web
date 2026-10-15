@@ -1,7 +1,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./style.css";
 import type maplibregl from "maplibre-gl";
-import { loadSites, loadStatic, type LabelSet, type SiteCollection, type SiteProps } from "./data";
+import { loadSites, loadStatic, type Composite, type LabelSet, type SiteCollection, type SiteProps } from "./data";
 import {
   addNavigation,
   applyOverlays,
@@ -346,8 +346,8 @@ async function main() {
     map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers }).length ? "pointer" : "";
   });
 
-  // ↑/↓ step through the site list in its current (sorted, filtered) order. Registered in the
-  // capture phase so the map doesn't also pan; ←/→ still pan the map.
+  // ↑/↓ step through the site list in its current (sorted, filtered) order; ←/→ pick the true /
+  // false color NAIP composite. Registered in the capture phase so the map doesn't also pan.
   function stepSite(dir: 1 | -1) {
     const visible = [...(list.children as HTMLCollectionOf<HTMLLIElement>)].filter((li) => !li.hidden);
     if (!visible.length) return;
@@ -355,15 +355,29 @@ async function main() {
     const next = i < 0 ? (dir > 0 ? 0 : visible.length - 1) : Math.min(Math.max(i + dir, 0), visible.length - 1);
     if (next !== i) selectSite(visible[next].dataset.site!, true);
   }
+  function setComposite(c: Composite) {
+    if (state.overlays.naip === c) return;
+    state.overlays.naip = c;
+    showComposite(map, naip, c);
+    applyOverlays(map, state.overlays);
+    saveOverlays(state.overlays);
+    syncPanel();
+  }
   document.addEventListener(
     "keydown",
     (e) => {
-      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      if (!e.key.startsWith("Arrow") || e.metaKey || e.ctrlKey || e.altKey || about.open) return;
       const t = e.target as HTMLElement;
-      if (t.matches("textarea, input[type=range], select") || e.metaKey || e.ctrlKey || e.altKey || about.open) return;
+      // Leave native arrow behavior alone in sliders and dropdowns, and for ←/→ in text fields
+      // (caret) and radio groups (selection).
+      if (t.matches("textarea, input[type=range], select")) return;
+      const horizontal = e.key === "ArrowLeft" || e.key === "ArrowRight";
+      if (horizontal && t.matches("input[type=search], input[type=text], input[type=radio]")) return;
       e.preventDefault();
       e.stopPropagation();
-      stepSite(e.key === "ArrowDown" ? 1 : -1);
+      if (e.key === "ArrowDown") stepSite(1);
+      else if (e.key === "ArrowUp") stepSite(-1);
+      else setComposite(e.key === "ArrowLeft" ? "true" : "false");
     },
     true,
   );
