@@ -36,12 +36,12 @@ function writeHash(updates: Record<string, string | null>) {
 }
 
 // ---- per-viewer layer preferences (best effort) ----
-const OVERLAY_KEY = "treefinder.overlays.v2"; // bump when defaults change so old choices don't stick
+const OVERLAY_KEY = "treefinder.overlays.v3"; // bump when defaults change so old choices don't stick
 const defaultOverlays: OverlayState = {
   naip: "true",
   polygons: true,
   mask: true,
-  maskOpacity: 0.7,
+  maskOpacity: 0.3,
   outlines: true,
   imagery: "off",
   imageryOpacity: 1,
