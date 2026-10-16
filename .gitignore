@@ -4,3 +4,5 @@ pipeline/work/
 pipeline/__pycache__/
 scratch_out/
 pipeline/*.log
+# Slide decks (~50 MB each) are source material, not site content
+*.pptx
