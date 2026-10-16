@@ -19,16 +19,21 @@ export const COLORS = {
 
 /** Default view: the contiguous US. */
 export const HOME_BOUNDS: LngLatBoundsLike = [[-125, 24.3], [-66.9, 49.5]];
-/** Panning limit: CONUS plus a margin. Sites outside it (Hawaii) get their own limit when selected. */
-export const CONUS_MAX_BOUNDS: [[number, number], [number, number]] = [[-130, 21], [-62, 53]];
+type Box = [[number, number], [number, number]];
+/** Panning limits: CONUS plus a margin, and the main Hawaiian islands. */
+export const CONUS_MAX_BOUNDS: Box = [[-130, 21], [-62, 53]];
+export const HAWAII_MAX_BOUNDS: Box = [[-162.5, 17.5], [-153.5, 23.5]];
 const OUTSIDE_MARGIN_DEG = 3;
 
-/** The panning limit to use while a site is in focus. */
-export function maxBoundsFor(bbox: [number, number, number, number] | null): [[number, number], [number, number]] {
-  const [[W, S], [E, N]] = CONUS_MAX_BOUNDS;
-  if (!bbox) return CONUS_MAX_BOUNDS;
+const contains = ([[W, S], [E, N]]: Box, [w, s, e, n]: [number, number, number, number]) =>
+  w >= W && e <= E && s >= S && n <= N;
+
+/** The panning limit to use while a site is in focus (CONUS by default). */
+export function maxBoundsFor(bbox: [number, number, number, number] | null): Box {
+  if (!bbox || contains(CONUS_MAX_BOUNDS, bbox)) return CONUS_MAX_BOUNDS;
+  if (contains(HAWAII_MAX_BOUNDS, bbox)) return HAWAII_MAX_BOUNDS;
+  // Any other site outside both regions: a box around the site itself.
   const [w, s, e, n] = bbox;
-  if (w >= W && e <= E && s >= S && n <= N) return CONUS_MAX_BOUNDS;
   const m = OUTSIDE_MARGIN_DEG;
   return [[w - m, s - m], [e + m, n + m]];
 }
