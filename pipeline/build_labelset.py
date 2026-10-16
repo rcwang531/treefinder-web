@@ -279,8 +279,10 @@ def main():
             props["bbox"] = [round(v, 7) for v in shape(r["buffer"]).bounds]
             sites.append({"type": "Feature", "properties": props, "geometry": r["extent"]})
             buffers.append({"type": "Feature", "properties": {"site": reg["site_id"]}, "geometry": r["buffer"]})
-            for p in r["polygons"]:
+            for i, p in enumerate(r["polygons"], 1):
                 p["properties"]["site"] = reg["site_id"]
+                # Stable polygon ID for validation answers: site ID + 1-based order from vectorization.
+                p["properties"]["pid"] = f"{reg['site_id']}-{i:03d}"
                 f.write(json.dumps(p, separators=(",", ":")) + "\n")
     write_geojson(os.path.join(out_dir, "sites.geojson"), sites)
     write_geojson(os.path.join(work, "cutline.geojson"), buffers)  # limits which raster tiles get built
