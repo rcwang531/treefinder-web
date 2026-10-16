@@ -1,8 +1,10 @@
 name: Deploy to GitHub Pages
 
+# One Pages site: main at the root, each feature branch as a preview under /preview/<name>/.
+# Keep this file identical on all branches so a push to any of them rebuilds the whole site.
 on:
   push:
-    branches: [main]
+    branches: [main, feature/ui-frontpage, feature/contribute]
   workflow_dispatch:
 
 permissions:
@@ -14,24 +16,43 @@ concurrency:
   group: pages
   cancel-in-progress: true
 
+env:
+  # "<branch> <preview path>"; main is always built at the root.
+  PREVIEWS: |
+    feature/ui-frontpage ui
+    feature/contribute contribute
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: web
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - run: npm ci
-      - run: npm run build
+      - name: Build main
+        working-directory: main/web
+        run: npm ci && npm run build
+      - name: Build branch previews
+        run: |
+          mkdir -p main/web/dist/preview
+          echo "$PREVIEWS" | while read -r branch name; do
+            [ -z "$branch" ] && continue
+            if ! git ls-remote --exit-code --heads "https://github.com/${GITHUB_REPOSITORY}.git" "$branch" >/dev/null; then
+              echo "skip $branch (no such branch)"; continue
+            fi
+            git clone --quiet --depth 1 --branch "$branch" "https://github.com/${GITHUB_REPOSITORY}.git" "branch-$name"
+            (cd "branch-$name/web" && npm ci && npm run build)
+            # Previews must not compete with the live site in search results.
+            find "branch-$name/web/dist" -name '*.html' -exec sed -i 's#<head>#<head><meta name="robots" content="noindex, nofollow" />#' {} +
+            cp -r "branch-$name/web/dist" "main/web/dist/preview/$name"
+          done
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: web/dist
+          path: main/web/dist
 
   deploy:
     needs: build
