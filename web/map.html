@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TreeFinder Dashboard · Map</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png" />
+    <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+    <meta name="description" content="Interactive map of the TreeFinder dataset: hand-annotated dead trees at ~1,000 US sites over NAIP 2021–2023 imagery." />
+    <link rel="canonical" href="https://rcwang531.github.io/treefinder-web/map.html" />
+  </head>
+  <body>
+    <a class="skip-link" href="#search">Skip to site list</a>
+    <p id="sr-status" class="visually-hidden" aria-live="polite"></p>
+    <header class="topbar">
+      <button id="drawer-toggle" class="icon-btn" aria-label="Show site list" aria-controls="sidebar">☰</button>
+      <h1><button id="home-title" class="title-btn" type="button" title="Back to the default view"><img class="logo" src="/favicon.svg" alt="" width="26" height="26" /><span class="title-text">TreeFinder Dashboard</span></button></h1>
+      <nav id="tabs" class="tabs" role="tablist" aria-label="Label sets"></nav>
+      <a class="about-btn home-link" href="./">Home</a>
+      <button id="about-btn" class="about-btn" type="button" aria-haspopup="dialog">About</button>
+      <div class="year-wrap">
+        <span class="year-label">NAIP</span>
+        <div id="years" class="seg" role="radiogroup" aria-label="NAIP year"></div>
+      </div>
+    </header>
+
+    <div class="body">
+      <aside id="sidebar" class="sidebar">
+        <section id="site-card" class="site-card" hidden></section>
+        <div class="filters">
+          <input id="search" type="search" placeholder="Search site or state" autocomplete="off" />
+          <label class="check"><input id="only-labeled" type="checkbox" /> Only sites with labels</label>
+          <div id="count" class="muted"></div>
+        </div>
+        <ul id="site-list" class="site-list"></ul>
+      </aside>
+
+      <main class="map-wrap">
+        <div id="map"></div>
+        <div id="notice" class="notice" role="status" hidden></div>
+        <section id="layers" class="panel" aria-label="Layers">
+          <h2>Layers</h2>
+          <fieldset>
+            <legend>NAIP composite</legend>
+            <label class="check"><input type="radio" name="naip" value="true" data-ov="naip" /> True color (R, G, B)</label>
+            <label class="check"><input type="radio" name="naip" value="false" data-ov="naip" /> False color (NIR, R, G)</label>
+          </fieldset>
+          <fieldset>
+            <legend>Label colors</legend>
+            <label class="check"><input type="radio" name="palette" value="standard" data-ov="palette" /> Standard</label>
+            <label class="check"><input type="radio" name="palette" value="cvd" data-ov="palette" /> Color-blind safe</label>
+          </fieldset>
+          <fieldset>
+            <legend>Labels</legend>
+            <label class="check"><input type="checkbox" data-ov="polygons" />
+              <i class="sw sw-poly"></i> Label polygons</label>
+            <label class="check"><input type="checkbox" data-ov="mask" />
+              <i class="sw sw-mask"></i> Label mask (raster)</label>
+            <label class="slider mask-slider" id="mask-opacity">
+              <span>Mask opacity <output data-for="maskOpacity"></output></span>
+              <input type="range" min="0" max="1" step="0.05" data-ov="maskOpacity" />
+            </label>
+            <label class="check"><input type="checkbox" data-ov="outlines" />
+              <i class="sw sw-extent"></i> Site extent</label>
+          </fieldset>
+          <fieldset id="imagery-controls">
+            <legend>Site imagery (from the dataset)</legend>
+            <label class="check"><input type="radio" name="imagery" value="off" data-ov="imagery" /> Off</label>
+            <label class="check"><input type="radio" name="imagery" value="rgb" data-ov="imagery" /> True color</label>
+            <label class="check"><input type="radio" name="imagery" value="nir" data-ov="imagery" /> False color (NIR)</label>
+            <label class="slider">
+              <span>Imagery opacity <output data-for="imageryOpacity"></output></span>
+              <input type="range" min="0" max="1" step="0.05" data-ov="imageryOpacity" />
+            </label>
+          </fieldset>
+          <p class="muted small shortcuts">Shortcut Keys<br>
+            <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> switch NAIP year<br>
+            <kbd>↑</kbd><kbd>↓</kbd> go to the previous / next site<br>
+            <kbd>←</kbd><kbd>→</kbd> switch true / false color</p>
+        </section>
+      </main>
+    </div>
+    <dialog id="about" class="about" aria-labelledby="about-title">
+      <header>
+        <h2 id="about-title">About TreeFinder</h2>
+        <button class="close" type="button" aria-label="Close">×</button>
+      </header>
+      <div class="about-body">
+        <section>
+          <p class="venue">NeurIPS 2025 · Datasets &amp; Benchmarks Track</p>
+          <h3 class="paper-title">TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery</h3>
+          <p class="authors">Zhihao Wang<sup>1</sup>, Cooper Li<sup>1</sup>, Ruichen Wang<sup>1</sup>, Lei Ma<sup>1</sup>,
+            George Hurtt<sup>1</sup>, Xiaowei Jia<sup>2</sup>, Gengchen Mai<sup>3</sup>, Zhili Li<sup>1</sup>, Yiqun Xie<sup>1,*</sup></p>
+          <p class="affiliations"><sup>1</sup>University of Maryland, College Park · <sup>2</sup>University of Pittsburgh ·
+            <sup>3</sup>University of Texas at Austin<br><sup>*</sup>Corresponding author</p>
+          <nav class="links" aria-label="Project links">
+            <a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/f22625283cf5812f45933610314259be-Abstract-Datasets_and_Benchmarks_Track.html" target="_blank" rel="noopener">Paper (NeurIPS 2025)</a>
+            <a href="https://github.com/zhwang0/treefinder" target="_blank" rel="noopener">Code (GitHub)</a>
+            <a href="https://www.kaggle.com/datasets/zhihaow/tree-finder" target="_blank" rel="noopener">Dataset (Kaggle)</a>
+            <a href="https://huggingface.co/datasets/ai-spatial/TreeFinder" target="_blank" rel="noopener">Dataset (Hugging Face)</a>
+          </nav>
+        </section>
+        <section>
+          <h4>Dataset</h4>
+          <p>TreeFinder is the first high-resolution benchmark for mapping individual tree mortality across the contiguous United States.
+            Dead trees were hand-annotated at the pixel level on 0.6 m NAIP aerial imagery, and the annotations were checked against multi-temporal NAIP and vegetation indices.</p>
+          <ul class="facts">
+            <li><b>~1,000</b> sites in 48 states</li>
+            <li><b>23,000+</b> hectares</li>
+            <li><b>20,000+</b> annotated dead trees</li>
+            <li><b>0.6 m</b> NAIP · R, G, B, NIR</li>
+            <li>Binary masks (1 = dead tree)</li>
+            <li>License: CC BY 4.0</li>
+          </ul>
+          <p class="muted small">Benchmarks cover random, cross-region, cross-climate and cross-forest-type splits for CNN and vision-transformer segmentation models.</p>
+        </section>
+        <section>
+          <h4>Contact</h4>
+          <p>We welcome contributions: new dead-tree labels, corrections to existing ones, and feedback on the dataset.
+            Open an issue on <a href="https://github.com/zhwang0/treefinder/issues" target="_blank" rel="noopener">GitHub</a> or email us.</p>
+          <ul class="contacts">
+            <li>Zhihao Wang · <a href="mailto:zhwang1@umd.edu">zhwang1@umd.edu</a></li>
+            <li>Yiqun Xie · <a href="mailto:xie@umd.edu">xie@umd.edu</a></li>
+            <li>Ruichen Wang · <a href="mailto:ruichenw@umd.edu">ruichenw@umd.edu</a></li>
+          </ul>
+        </section>
+        <section>
+          <h4 class="cite-head">Citation <button id="copy-bib" class="copy" type="button">Copy BibTeX</button></h4>
+          <pre id="bibtex">@inproceedings{wang2025treefinder,
+  title     = {TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery},
+  author    = {Wang, Zhihao and Li, Cooper and Wang, Ruichen and Ma, Lei and Hurtt, George and Jia, Xiaowei and Mai, Gengchen and Li, Zhili and Xie, Yiqun},
+  booktitle = {Proceedings of the 39th Conference on Neural Information Processing Systems (NeurIPS 2025), Datasets and Benchmarks Track},
+  year      = {2025}
+}</pre>
+        </section>
+      </div>
+    </dialog>
+    <noscript>
+      <p>TreeFinder Dashboard is an interactive map of the TreeFinder dataset (NeurIPS 2025 Datasets &amp; Benchmarks Track):
+        hand-annotated individual dead trees on 0.6 m NAIP aerial imagery across about 1,000 sites in the contiguous United States.
+        Enable JavaScript to use the map. Dataset: <a href="https://huggingface.co/datasets/ai-spatial/TreeFinder">Hugging Face</a>,
+        <a href="https://www.kaggle.com/datasets/zhihaow/tree-finder">Kaggle</a>. Code: <a href="https://github.com/zhwang0/treefinder">GitHub</a>.</p>
+    </noscript>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

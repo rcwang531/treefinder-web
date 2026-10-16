@@ -18,7 +18,11 @@ pipeline/
   naip_availability.py    per-site NAIP years and acquisition dates -> naip_availability.json
   work/                   intermediate per-site rasters (safe to delete)
 web/                      Vite + TypeScript + MapLibre GL app
+  index.html, src/front.* front page (impact, dataset, team, links to the map)
+  map.html, src/main.ts   map dashboard
+  public/assets/front/    front-page images (NAIP site captures, paper figures)
   public/data/            generated data served with the app
+assets/slides/            text and the authors' own figures extracted from the slide decks (reference only)
 ```
 
 ## Environment

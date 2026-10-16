@@ -1,0 +1,260 @@
+===== slide 1 (64 paragraphs; media: image6.png, image11.png, image16.emf, image1.png, image5.png, image10.png, image15.jpeg, image14.png, image18.png, image4.png, image9.png, image3.emf, image13.emf, image8.png, image17.png, image2.png, image7.emf, image12.png)
+   TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery
+   Zhihao Wang1, Cooper Li1, Ruichen Wang1, Lei Ma1, George Hurtt1, Xiaowei Jia2, Gengchen Mai3, Zhili Li1, Yiqun Xie1
+   1University of Maryland, 2University of Pittsburgh, 3University of Texas at Austin
+   Importance of Individual Tree Mortality Detection
+   Challenges in Semantic Segmentation
+   Generalizability Evaluation
+   Needs for National-Scale Tree Mortality Mapping
+   TreeFinder
+   Experiment Results
+   Acknowledgements
+   📧xie@umd.edu
+   Forests absorb ~30% of global CO₂ emissions each year.
+   Individual tree mortality is often overlooked - a recent study found that 60% of dead trees were scattered in California.
+   Scattered dead trees increase wildfire risks, disease spread, and cause underestimation of carbon uptake.
+   91.4 Million (~60%) Scattered Dead Trees in CA, USA
+   Credit: Cheng et al., 2024
+   Nature Communication
+   High-resolution imagery captures subtle visual signals.
+   Multispectral bands and vegetation indices enhance sensitivity to canopy and physiological changes.
+   Wall-to-wall national coverage enables consistent, large-scale assessment of mortality events.
+   No existing public dataset currently meets these requirements.
+   Visual differences across resolutions
+   Beyond RGB: Multi-spectral band and vegetation index
+   NAIP images from our TreeFinder
+   Drone images from deadtree.earth
+   Limited locations w. expensive collection cost.
+   Full space coverage of US w. free access.
+   Wall-to-wall national coverage vs. Site-based drone collections
+   Dataset
+   1,000 sites
+   48 US states
+   23,000 hectares
+   0.6m resolutions
+   Benchmarking
+   6 different models
+   3 model categories
+   17 evaluation scenarios
+   2 difficulty levels
+   Annotation Details
+   3 rounds of detailed annotation refinements
+   95%+ agreement in the cross-annotator assessment
+   Different distributions
+   Challenging visual signatures
+   vs. Traditional geo-objects
+   Incorporated multi-temporal information to validate annotations.
+   Significant spatial variability across large-scale generalizability tasks, including shifts across geographic regions, climate zones, primary forest types.
+   Weak contrast or high similarity of visual signature with the surrounding context, compared to traditional geo-objects (e.g., buildings, rivers).
+   Random split with incremental training size.
+   Cross-region scenario (simple vs. hard).
+   Cross-climate scenario (simple vs. hard).
+   Cross-forest-type scenario (simple vs. hard).
+   Geo-locations
+   Climate Zones
+   Forest Types
+   Simple: ~ 50% sample size in training
+   Hard: one dominant distribution (~ 20%) in training
+   Overall results of random split on 80% training size.
+   Visualization of example segmentation results.
+   F1 score vs. training size
+   Results in cross climate and forest types.
+   Candidate Models
+   CNN-based: U-Net, DeepLabV3+
+   Transformer-based: ViT, SegFormer, Mask2Former
+   Multimodal foundation model for RS: DOFA
+===== slide 2 (65 paragraphs; media: image6.png, image11.png, image16.emf, image1.png, image5.png, image10.png, image15.jpeg, image14.png, image18.png, image4.png, image9.png, image3.emf, image13.emf, image8.png, image17.png, image2.png, image7.emf, image12.png)
+   TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery
+   Zhihao Wang1, Cooper Li1, Ruichen Wang1, Lei Ma1, George Hurtt1, Xiaowei Jia2, Gengchen Mai3, Zhili Li1, Yiqun Xie1
+   1University of Maryland, 2University of Pittsburgh, 3University of Texas at Austin
+   Importance of Individual Tree Mortality Detection
+   Challenges in Semantic Segmentation
+   Generalizability Evaluation
+   Needs for National-Scale Tree Mortality Mapping
+   TreeFinder
+   Experiment Results
+   Acknowledgements
+   📧xie@umd.edu
+   Forests absorb ~30% CO₂ emissions each year.
+   Individual tree mortality are often missed due to large-scale, medium-resolution satellite observations.
+   Recent study found that 60% dead trees were scattered in California, USA.
+   91.4 Million (~60%) Scattered Dead Trees in CA, USA
+   Credit: Cheng et al., 2024
+   Nature Communication
+   High-resolution imagery captures subtle visual signals.
+   Multispectral bands and vegetation indices enhance sensitivity to canopy and physiological changes.
+   Wall-to-wall national coverage enables consistent, large-scale assessment of mortality events.
+   No existing public dataset currently meets these requirements.
+   Visual differences across resolutions
+   Beyond RGB: Multi-spectral band and vegetation index
+   NAIP images from our TreeFinder
+   Drone images from deadtree.earth
+   Limited locations w. expensive collection cost.
+   Full space coverage of US w. free access.
+   Wall-to-wall national coverage vs. Site-based drone collections
+   Dataset
+   1,000 sites
+   48 US states
+   23,000 hectares
+   0.6m resolutions
+   Benchmarking
+   6 different models
+   3 model categories
+   17 evaluation scenarios
+   2 difficulty levels
+   Annotation Details
+   3 rounds of detailed annotation refinements
+   95%+ agreement in the cross-annotator assessment
+   Different distributions
+   Challenging visual signatures
+   vs. Traditional geo-objects
+   Incorporated multi-temporal information to validate annotations.
+   Significant spatial variability across large-scale generalizability tasks, including shifts across geographic regions, climate zones, primary forest types.
+   Weak contrast of visual signature, compared to traditional geo-objects.
+   Class imbalance of individual tree mortality events relative to the background.
+   Random split with incremental training size.
+   Cross-region scenario (simple vs. hard).
+   Cross-climate scenario (simple vs. hard).
+   Cross-forest-type scenario (simple vs. hard).
+   Geo-locations
+   Climate Zones
+   Forest Types
+   Simple: ~ 50% sample size in training
+   Hard: one dominant distribution (~ 20%) in training
+   Overall results of random split on 80% training size.
+   Visualization of example segmentation results.
+   F1 score vs. training size
+   Results in cross climate and forest types.
+   Candidate Models
+   CNN-based: U-Net, DeepLabV3+
+   Transformer-based: ViT, SegFormer, Mask2Former
+   Multimodal foundation model for RS: DOFA
+===== slide 3 (24 paragraphs; media: hdphoto3.wdp, image25.png, hdphoto5.wdp, image19.png, image21.png, image24.png, image27.png, image4.png, image12.png, hdphoto2.wdp, image23.emf, image20.png, image26.jpeg, hdphoto4.wdp, image28.png, hdphoto1.wdp, image22.png, image15.jpeg)
+   (a) Visual differences across resolutions
+   (b) Beyond RGB: Multi-spectral band and vegetation index
+   10m
+   Sentinel 2
+   30m
+   Landsat 8
+   0.6m
+   NAIP
+   Traditional images for at medium resolutions
+   NAIP images at high-res.
+   Sharp contrast
+   Geometric shapes
+   Weak contrast
+   Comparison to Existing Datasets
+   Drone images from deadtree.earth
+   NAIP images from our TreeFinder
+   Limited locations
+   High cost to flight drones
+   Collection biased towards the forest near human settlements
+   Inconsistent data resolutions
+   Full spatial coverage
+   Free aerial images
+   Consistent spectral bands
+   Regular data collection
+===== slide 4 (49 paragraphs; media: image33.png, image38.png, image39.png, image9.png, image29.png, image42.png, image32.png, image37.png, image400.png, image8.png, image44.png, image41.png, image5.png, image36.png, image7.emf, image31.png, image390.png, image6.png, image35.png, image40.png, image30.png, image34.emf, image34.png, image43.png, image10.png)
+   TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery
+   Zhihao Wang1, Cooper Li1, Ruichen Wang1, Lei Ma1, George Hurtt1, Xiaowei Jia2, Gengchen Mai3, Zhili Li1, Yiqun Xie1
+   1University of Maryland, 2University of Pittsburgh, 3University of Texas at Austin
+   Importance of Individual Tree Mortality Detection
+   Contributions
+   Inverse Modeling
+   Needs for National-Scale Tree Mortality Mapping
+   Challenges
+   SimFair Framework
+   Experiment Results
+   Conclusions
+   Acknowledgements
+   SimFair: a simulation-guided fairness-aware learning
+   transfer fairness to the regions without truth;
+   inversely model simulations to align learning objectives;
+   softly regularize predictions using physical constraints.
+   Future: expand to more knowledge- or rule-based models with various domain tasks for fairness-aware learning.
+   Distribution of U.S. Climate
+   Reference Network
+   Global distribution of rainfall stations
+   Scientific Report, 2017
+   Simulation models: (1) unlimited theoretical labels, (2) flexible spatio-temporal sets of location.
+   Dual-Fairness Consistency
+   Normal training process.
+   Dual-fairness-guided training process.
+   Goal: to make predictions closer to truth given simulations.
+   How: learn triplet relationships to have better initial conditions for predictions.
+   Forward path: learn prior physical knowledge in .
+   Inverse path: output target .
+   A bijector-based invertible network .
+   A physical model .
+   Spatial distributions of temperature data:
+   Results:
+   Temporal splits.
+   Inver modeling.
+   Test groups are not prefixed and can be highly dynamic.
+   Difficult to transfer learning objectives from train to test.
+   No truth available in test regions.
+   A Dual-fairness consistency to improve fairness to new locations by reducing the gap between simulations and predictions.
+   An inverse-modeling design to align the physics-based simulation with the learning objectives for embedding physical laws.
+   Physical-rule-based constraints to improve prediction performance.
+   Conceptual idea of fairness relationships.
+   📧xie@umd.edu
+   Forests absorb ~30% of CO2 emissions each year.
+   Individual tree mortality are often missed due to large-scale low-resolution observations.
+   Recent study found that 60% dead trees are scattered in California, USA.
+   91.4 Million (~60%) Scattered Dead Trees in CA
+   Credit: Cheng et al., 2024
+   Nature Communication
+
+MEDIA:
+  hdphoto1.wdp  672 KB
+  hdphoto2.wdp  444 KB
+  hdphoto3.wdp  55 KB
+  hdphoto4.wdp  42 KB
+  hdphoto5.wdp  174 KB
+  image1.png  152 KB
+  image10.png  1870 KB
+  image11.png  384 KB
+  image12.png  527 KB
+  image13.emf  185 KB
+  image14.png  3086 KB
+  image15.jpeg  7061 KB
+  image16.emf  1048 KB
+  image17.png  146 KB
+  image18.png  358 KB
+  image19.png  3382 KB
+  image2.png  2759 KB
+  image20.png  6013 KB
+  image21.png  424 KB
+  image22.png  149 KB
+  image23.emf  1763 KB
+  image24.png  4034 KB
+  image25.png  58 KB
+  image26.jpeg  465 KB
+  image27.png  2052 KB
+  image28.png  2056 KB
+  image29.png  167 KB
+  image3.emf  992 KB
+  image30.png  145 KB
+  image31.png  270 KB
+  image32.png  1575 KB
+  image33.png  508 KB
+  image34.emf  4257 KB
+  image34.png  25 KB
+  image35.png  69 KB
+  image36.png  17 KB
+  image37.png  25 KB
+  image38.png  277 KB
+  image39.png  538 KB
+  image390.png  13 KB
+  image4.png  1285 KB
+  image40.png  290 KB
+  image400.png  9 KB
+  image41.png  578 KB
+  image42.png  142 KB
+  image43.png  217 KB
+  image44.png  17 KB
+  image5.png  212 KB
+  image6.png  63 KB
+  image7.emf  199 KB
+  image8.png  8 KB
+  image9.png  1200 KB
