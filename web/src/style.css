@@ -289,7 +289,7 @@ kbd {
 .panel .mask-slider input[type="range"] { accent-color: var(--sw-mask); }
 .panel p { margin: 4px 0 0; }
 .sw { display: inline-block; width: 14px; height: 10px; border-radius: 2px; flex: none; }
-.sw-poly { border: 2px solid var(--sw-poly); background: rgba(255, 225, 77, 0.2); }
+.sw-poly { border: 2px solid var(--sw-poly); }
 .sw-mask { background: var(--sw-mask); }
 .sw-extent { border: 2px solid var(--sw-extent); }
 .home-ctrl { display: grid; place-items: center; color: #333; }

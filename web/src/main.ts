@@ -5,9 +5,11 @@ import { loadSites, loadStatic, type Composite, type LabelSet, type SiteCollecti
 import {
   addNavigation,
   applyOverlays,
+  CONUS_MAX_BOUNDS,
   createMap,
   goHome,
   MASK_CSS,
+  maxBoundsFor,
   setLabelSet,
   setSelected,
   showComposite,
@@ -249,6 +251,7 @@ async function main() {
   }
   function zoomTo(p: SiteProps) {
     const [w, s, e, n] = p.bbox;
+    map.setMaxBounds(maxBoundsFor(p.bbox)); // lets the map reach sites outside CONUS (Hawaii)
     // Keep the site clear of the floating layer panel on wide screens.
     const right = matchMedia("(max-width: 760px)").matches ? 24 : panel.offsetWidth + 36;
     map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 40, left: 24, right }, maxZoom: 18, duration: 800 });
@@ -417,7 +420,11 @@ async function main() {
   syncPanel();
   setYear(state.year);
   await switchTab(state.tab);
-  if (state.site && !hadMapHash) zoomTo(state.byName.get(state.site)!);
+  if (state.site) {
+    const p = state.byName.get(state.site)!;
+    // A saved view of a site outside CONUS was clamped by the CONUS limit on load, so re-zoom.
+    if (!hadMapHash || maxBoundsFor(p.bbox) !== CONUS_MAX_BOUNDS) zoomTo(p);
+  }
 }
 
 main().catch((err) => {

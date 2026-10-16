@@ -19,6 +19,19 @@ export const COLORS = {
 
 /** Default view: the contiguous US. */
 export const HOME_BOUNDS: LngLatBoundsLike = [[-125, 24.3], [-66.9, 49.5]];
+/** Panning limit: CONUS plus a margin. Sites outside it (Hawaii) get their own limit when selected. */
+export const CONUS_MAX_BOUNDS: [[number, number], [number, number]] = [[-130, 21], [-62, 53]];
+const OUTSIDE_MARGIN_DEG = 3;
+
+/** The panning limit to use while a site is in focus. */
+export function maxBoundsFor(bbox: [number, number, number, number] | null): [[number, number], [number, number]] {
+  const [[W, S], [E, N]] = CONUS_MAX_BOUNDS;
+  if (!bbox) return CONUS_MAX_BOUNDS;
+  const [w, s, e, n] = bbox;
+  if (w >= W && e <= E && s >= S && n <= N) return CONUS_MAX_BOUNDS;
+  const m = OUTSIDE_MARGIN_DEG;
+  return [[w - m, s - m], [e + m, n + m]];
+}
 
 const ESRI_MAXZOOM = 11.5; // Esri context is hidden once NAIP takes over
 
@@ -65,6 +78,7 @@ export function createMap(container: HTMLElement, naip: NaipSources, composite: 
     container,
     style,
     bounds: HOME_BOUNDS,
+    maxBounds: CONUS_MAX_BOUNDS,
     hash: "map",
     maxPitch: 0,
     dragRotate: false,
@@ -128,6 +142,7 @@ export function addNavigation(map: maplibregl.Map, onHome: () => void) {
 }
 
 export function goHome(map: maplibregl.Map) {
+  map.setMaxBounds(CONUS_MAX_BOUNDS);
   map.fitBounds(HOME_BOUNDS, { duration: 800 });
 }
 
@@ -137,7 +152,6 @@ const LS_LAYERS = [
   "extents-fill",
   "extents-line",
   "extents-selected",
-  "labels-fill",
   "labels-casing",
   "labels-line",
   "points-cluster",
@@ -203,13 +217,6 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
     source: "extents",
     filter: ["==", ["get", "site"], ""],
     paint: { "line-color": COLORS.extent, "line-width": 3.5 }, // selected site: same color, heavier line
-  });
-  map.addLayer({
-    id: "labels-fill",
-    type: "fill",
-    source: "labels",
-    "source-layer": "labels",
-    paint: { "fill-color": COLORS.polygon, "fill-opacity": 0.2 },
   });
   // A dark casing under the yellow outline keeps small polygons visible on bright imagery.
   // MapLibre only allows ["zoom"] at the top of an interpolate, so the casing gets its own curve.
@@ -286,7 +293,6 @@ export function applyOverlays(map: maplibregl.Map, o: OverlayState) {
   const vis = (id: string, on: boolean) => {
     if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", on ? "visible" : "none");
   };
-  vis("labels-fill", o.polygons);
   vis("labels-casing", o.polygons);
   vis("labels-line", o.polygons);
   vis("mask", o.mask);
