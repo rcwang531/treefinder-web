@@ -1,0 +1,62 @@
+[
+ {
+  "file": "CO_001_2023_close.jpg",
+  "site": "CO_001",
+  "year": 2023,
+  "state": "Colorado",
+  "polygons": 61,
+  "area_m2": 1726,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CO_050_2023_close.jpg",
+  "site": "CO_050",
+  "year": 2023,
+  "state": "Colorado",
+  "polygons": 80,
+  "area_m2": 1611,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "NV_005_2022_close.jpg",
+  "site": "NV_005",
+  "year": 2022,
+  "state": "Nevada",
+  "polygons": 145,
+  "area_m2": 3177,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "NY_008_2022_close.jpg",
+  "site": "NY_008",
+  "year": 2022,
+  "state": "New York",
+  "polygons": 56,
+  "area_m2": 9465,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "UT_006_2021_close.jpg",
+  "site": "UT_006",
+  "year": 2021,
+  "state": "Utah",
+  "polygons": 114,
+  "area_m2": 2275,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "KY_015_2022_close.jpg",
+  "site": "KY_015",
+  "year": 2022,
+  "state": "Kentucky",
+  "polygons": 71,
+  "area_m2": 9456,
+  "width": 960,
+  "height": 600
+ }
+]

@@ -72,6 +72,58 @@ for (const id of navLinks.keys()) {
   if (el) sectionObserver.observe(el);
 }
 
+const esc = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+
+// ---- gallery: built from assets/gallery/gallery.json (see web/scripts/make_gallery.py) ----
+interface GalleryItem {
+  file: string;
+  site: string;
+  year: number;
+  state: string;
+  polygons: number;
+  area_m2: number;
+  width: number;
+  height: number;
+}
+fetch("assets/gallery/gallery.json")
+  .then((r) => (r.ok ? r.json() : []))
+  .then((items: GalleryItem[]) => {
+    $("#gallery").innerHTML = items
+      .map(
+        (g) => `<li><a class="site-card" href="map.html#y=${g.year}&amp;s=${esc(g.site)}">
+          <img src="assets/gallery/${esc(g.file)}" alt="NAIP ${g.year} aerial view of site ${esc(g.site)} in ${esc(g.state)} with ${g.polygons} dead-tree polygons outlined" loading="lazy" width="${g.width}" height="${g.height}" />
+          <span class="site-card-text"><b>${esc(g.site)}</b> ${esc(g.state)} · ${g.polygons} dead trees · ${g.area_m2.toLocaleString()} m²</span>
+        </a></li>`,
+      )
+      .join("");
+  })
+  .catch(() => ($("#explore").querySelector(".intro")!.textContent = "Open the map to explore all labeled sites."));
+
+// ---- contributors: data/contributors.json ----
+interface Person {
+  name: string;
+  affiliation?: string;
+  roles?: string[];
+}
+fetch("data/contributors.json")
+  .then((r) => (r.ok ? r.json() : { contributors: [] }))
+  .then(({ contributors }: { contributors: Person[] }) => {
+    const box = $("#contributor-list");
+    if (!contributors.length) {
+      box.innerHTML = `<p class="empty-state">Contributors who label and validate trees will be listed here.
+        <a href="#contribute">Be one of the first.</a></p>`;
+      return;
+    }
+    box.innerHTML = `<ul class="people">${contributors
+      .map(
+        (c) => `<li><b>${esc(c.name)}</b>${c.affiliation ? `<br><span class="muted">${esc(c.affiliation)}</span>` : ""}${
+          c.roles?.length ? `<br><span class="roles">${c.roles.map(esc).join(" · ")}</span>` : ""
+        }</li>`,
+      )
+      .join("")}</ul>`;
+  })
+  .catch(() => undefined);
+
 // ---- citation ----
 $("#copy-bib").addEventListener("click", async () => {
   const btn = $("#copy-bib");

@@ -1,0 +1,7 @@
+# Gallery order: one file name per line (see web/scripts/make_gallery.py)
+CO_001_2023_close.jpg
+CO_050_2023_close.jpg
+NV_005_2022_close.jpg
+NY_008_2022_close.jpg
+UT_006_2021_close.jpg
+KY_015_2022_close.jpg

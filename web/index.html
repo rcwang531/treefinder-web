@@ -57,9 +57,10 @@
     <header class="site-nav">
       <a class="brand" href="./" aria-label="TreeFinder home"><img src="/favicon.svg" alt="" width="28" height="28" /> TreeFinder</a>
       <nav aria-label="Sections">
+        <a href="#explore">Explore</a>
         <a href="#impact">Impact</a>
         <a href="#dataset">Dataset</a>
-        <a href="#contribute">Contribute</a>
+        <a href="#contribute">Citizen science</a>
         <a href="#team">Team</a>
         <a class="nav-cta" href="map.html">Open the map</a>
       </nav>
@@ -74,7 +75,6 @@
           <img data-src="assets/front/hero-al_016.jpg" alt="" data-caption="Hand-labeled dead trees at site AL_016, Alabama · NAIP 2023" />
         </div>
         <div class="hero-content">
-          <p class="eyebrow">NeurIPS 2025 · Datasets &amp; Benchmarks Track</p>
           <h1 id="hero-title">TreeFinder</h1>
           <p class="lead">Finding the dead trees that satellites miss.</p>
           <p class="hero-text">A US-scale benchmark for mapping individual tree mortality from 0.6&nbsp;m aerial imagery: dead trees outlined by hand at about 1,000 forest sites across 48 states.</p>
@@ -84,7 +84,7 @@
               <span><b>Explore the map</b><span>Labels over NAIP 2021–2023</span></span>
               <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M13.2 5.3 19.9 12l-6.7 6.7-1.4-1.4 4.3-4.3H4v-2h12.1l-4.3-4.3z"/></svg>
             </a>
-            <a class="button button-ghost" href="map.html#contribute=1">Contribute</a>
+            <a class="button button-ghost" href="#contribute">Become a contributor</a>
           </div>
         </div>
         <div class="hero-caption">
@@ -101,6 +101,22 @@
           <li><b>20,000+</b><span>dead trees annotated</span></li>
           <li><b>0.6 m</b><span>NAIP resolution</span></li>
         </ul>
+      </section>
+
+      <section id="explore" class="band band-alt" aria-labelledby="explore-title">
+        <div class="wrap">
+          <h2 id="explore-title">Explore labeled sites</h2>
+          <p class="intro">Every site on the map shows its hand-drawn dead-tree outlines over NAIP imagery from 2021 to 2023. Start with one of these:</p>
+          <ul id="gallery" class="gallery" aria-live="polite"></ul>
+          <p><a class="button" href="map.html">Open the full map</a></p>
+          <h3 id="links-title">Paper, code and data</h3>
+          <nav class="link-row" aria-labelledby="links-title">
+            <a class="button" href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/f22625283cf5812f45933610314259be-Abstract-Datasets_and_Benchmarks_Track.html">Paper (NeurIPS 2025)</a>
+            <a class="button button-outline" href="https://github.com/zhwang0/treefinder">Code (GitHub)</a>
+            <a class="button button-outline" href="https://www.kaggle.com/datasets/zhihaow/tree-finder">Dataset (Kaggle)</a>
+            <a class="button button-outline" href="https://huggingface.co/datasets/ai-spatial/TreeFinder">Dataset (Hugging Face)</a>
+          </nav>
+        </div>
       </section>
 
       <section id="impact" class="band" aria-labelledby="impact-title">
@@ -172,9 +188,9 @@
                 <li>Labels validated against multi-temporal NAIP imagery</li>
                 <li>3 rounds of refinement and 95%+ cross-annotator agreement</li>
               </ul>
-              <h3>A benchmark for generalization</h3>
-              <p>Six segmentation models in three families (U-Net and DeepLabV3+; ViT, SegFormer and Mask2Former; and the remote-sensing foundation model DOFA) are evaluated in 17 scenarios at two difficulty levels: random splits plus cross-region, cross-climate and cross-forest-type shifts.</p>
-              <p>Mask2Former scores best on F1, precision and IoU. Broader spatial coverage in training matters most for generalization, and models are more sensitive to climate-zone shifts than to forest-type shifts.</p>
+              <h3>Built for generalization</h3>
+              <p>Sites span the forests of 48 states, across climate zones and primary forest types, so the data can test whether a dead-tree model trained in one region still works in another.</p>
+              <p>Every site ships with 0.6&nbsp;m R, G, B and near-infrared bands, NDVI and a pixel-level dead-tree mask, free to use under CC&nbsp;BY&nbsp;4.0.</p>
             </div>
           </div>
           <figure class="wide-figure">
@@ -184,63 +200,41 @@
         </div>
       </section>
 
-      <section id="explore" class="band band-alt" aria-labelledby="explore-title">
+      <section id="contribute" class="band band-alt citizen" aria-labelledby="contribute-title">
         <div class="wrap">
-          <h2 id="explore-title">Explore labeled sites</h2>
-          <p class="intro">Every site on the map shows its hand-drawn dead-tree outlines over NAIP imagery from 2021 to 2023. Start with one of these:</p>
-          <ul class="gallery">
-          <li>
-            <a class="site-card" href="map.html#y=2023&amp;s=CO_001">
-              <img src="/assets/front/site-co_001.jpg" alt="NAIP 2023 aerial view of site CO_001 in Colorado with 61 dead-tree polygons outlined" loading="lazy" width="640" height="400" />
-              <span class="site-card-text"><b>CO_001</b> Colorado · 61 dead trees · 1,726 m²</span>
-            </a>
-          </li>
-          <li>
-            <a class="site-card" href="map.html#y=2023&amp;s=ME_016">
-              <img src="/assets/front/site-me_016.jpg" alt="NAIP 2023 aerial view of site ME_016 in Maine with 70 dead-tree polygons outlined" loading="lazy" width="640" height="400" />
-              <span class="site-card-text"><b>ME_016</b> Maine · 70 dead trees · 7,520 m²</span>
-            </a>
-          </li>
-          <li>
-            <a class="site-card" href="map.html#y=2023&amp;s=OK_015">
-              <img src="/assets/front/site-ok_015.jpg" alt="NAIP 2023 aerial view of site OK_015 in Oklahoma with 53 dead-tree polygons outlined" loading="lazy" width="640" height="400" />
-              <span class="site-card-text"><b>OK_015</b> Oklahoma · 53 dead trees · 6,880 m²</span>
-            </a>
-          </li>
-          <li>
-            <a class="site-card" href="map.html#y=2023&amp;s=AL_016">
-              <img src="/assets/front/site-al_016.jpg" alt="NAIP 2023 aerial view of site AL_016 in Alabama with 58 dead-tree polygons outlined" loading="lazy" width="640" height="400" />
-              <span class="site-card-text"><b>AL_016</b> Alabama · 58 dead trees · 4,264 m²</span>
-            </a>
-          </li>
-          <li>
-            <a class="site-card" href="map.html#y=2023&amp;s=CT_007">
-              <img src="/assets/front/site-ct_007.jpg" alt="NAIP 2023 aerial view of site CT_007 in Connecticut with 82 dead-tree polygons outlined" loading="lazy" width="640" height="400" />
-              <span class="site-card-text"><b>CT_007</b> Connecticut · 82 dead trees · 7,341 m²</span>
-            </a>
-          </li>
+          <p class="kicker">Citizen science</p>
+          <h2 id="contribute-title">Citizen science for the forest</h2>
+          <p class="intro">People are remarkably good at spotting a gray, leafless crown in a sea of green, and computers still struggle with it. Every tree you check helps scientists track forest health across the country.</p>
+          <ul class="contribute-grid">
+            <li>
+              <h3>Check a label</h3>
+              <p>Look at a polygon on the map and answer one question: is this tree dead? It takes seconds, and every answer makes the dataset more trustworthy.</p>
+            </li>
+            <li>
+              <h3>Find new dead trees</h3>
+              <p>Outline dead trees at any of the 1,000 sites on the latest NAIP imagery, then save your polygons and send them to the team.</p>
+            </li>
+            <li>
+              <h3>No experience needed</h3>
+              <p>If you can tell a dead tree from a living one in an aerial photo, you can help. Students, foresters, and anyone who loves the outdoors are welcome.</p>
+            </li>
           </ul>
-          <p><a class="button" href="map.html">Open the full map</a></p>
+          <ol class="steps" aria-label="How to join">
+            <li><b>Sign in</b> on the map with your Google account; your access request is recorded automatically</li>
+            <li><b>Get approved</b> by the team, usually within a few days</li>
+            <li><b>Validate or draw</b> at the sites you choose, at your own pace</li>
+          </ol>
+          <p><a id="contribute-cta" class="button" href="map.html#contribute=1">Start contributing</a>
+            <span class="muted">Sign in with Google on the map. New accounts are approved by the team; questions to
+            <a href="mailto:ruichenw@umd.edu?subject=TreeFinder%20contributor%20access">ruichenw@umd.edu</a>.</span></p>
         </div>
       </section>
 
-      <section id="contribute" class="band" aria-labelledby="contribute-title">
+      <section id="contributors" class="band" aria-labelledby="contributors-title">
         <div class="wrap">
-          <h2 id="contribute-title">Help us find more dead trees</h2>
-          <p class="intro">TreeFinder grows with its community. Approved contributors can:</p>
-          <ul class="contribute-grid">
-            <li>
-              <h3>Validate labels</h3>
-              <p>Click a labeled polygon on the map and answer one question: is this tree dead?</p>
-            </li>
-            <li>
-              <h3>Draw new labels</h3>
-              <p>Outline dead trees at any of the 1,000 sites on the latest NAIP imagery, then download your polygons as GeoJSON and upload them to the shared collection.</p>
-            </li>
-          </ul>
-          <p><a id="contribute-cta" class="button" href="map.html#contribute=1">Start contributing</a>
-            <span class="muted">Sign in with Google. New accounts are approved by the team; questions to
-            <a href="mailto:ruichenw@umd.edu?subject=TreeFinder%20contributor%20access">ruichenw@umd.edu</a>.</span></p>
+          <h2 id="contributors-title">Contributors</h2>
+          <p class="intro">The people who label and validate dead trees for TreeFinder. Thank you!</p>
+          <div id="contributor-list" class="contributor-list"></div>
         </div>
       </section>
 
@@ -260,19 +254,11 @@
           </ul>
           <p class="muted small"><sup>*</sup>Corresponding author. Contact: Yiqun Xie (<a href="mailto:xie@umd.edu">xie@umd.edu</a>),
             Zhihao Wang (<a href="mailto:zhwang1@umd.edu">zhwang1@umd.edu</a>), Ruichen Wang (<a href="mailto:ruichenw@umd.edu">ruichenw@umd.edu</a>).</p>
-        </div>
-      </section>
-
-      <section id="cite" class="band" aria-labelledby="cite-title">
-        <div class="wrap">
-          <h2 id="cite-title">Paper, code and data</h2>
-          <nav class="link-row" aria-label="Project links">
-            <a class="button" href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/f22625283cf5812f45933610314259be-Abstract-Datasets_and_Benchmarks_Track.html">Paper (NeurIPS 2025)</a>
-            <a class="button button-outline" href="https://github.com/zhwang0/treefinder">Code (GitHub)</a>
-            <a class="button button-outline" href="https://www.kaggle.com/datasets/zhihaow/tree-finder">Dataset (Kaggle)</a>
-            <a class="button button-outline" href="https://huggingface.co/datasets/ai-spatial/TreeFinder">Dataset (Hugging Face)</a>
-          </nav>
-          <div class="cite-head"><h3>Cite</h3><button id="copy-bib" class="button button-outline button-small" type="button">Copy BibTeX</button></div>
+          <div class="logos" aria-label="Affiliation and support">
+            <a href="https://umd.edu" class="logo-tile"><img src="/assets/front/logo-umd.png" alt="University of Maryland" width="300" height="84" /></a>
+            <a href="https://www.nsf.gov" class="logo-tile logo-nsf"><img src="/assets/front/logo-nsf.png" alt="U.S. National Science Foundation" width="120" height="121" /><span>Supported by the U.S. National Science Foundation</span></a>
+          </div>
+          <div class="cite-head"><h3>Cite TreeFinder</h3><button id="copy-bib" class="button button-outline button-small" type="button">Copy BibTeX</button></div>
           <pre id="bibtex">@inproceedings{wang2025treefinder,
   title     = {TreeFinder: A US-Scale Benchmark Dataset for Individual Tree Mortality Monitoring Using High-Resolution Aerial Imagery},
   author    = {Wang, Zhihao and Li, Cooper and Wang, Ruichen and Ma, Lei and Hurtt, George and Jia, Xiaowei and Mai, Gengchen and Li, Zhili and Xie, Yiqun},
