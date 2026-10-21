@@ -18,7 +18,11 @@ pipeline/
   naip_availability.py    per-site NAIP years and acquisition dates -> naip_availability.json
   work/                   intermediate per-site rasters (safe to delete)
 web/                      Vite + TypeScript + MapLibre GL app
+  index.html, src/front.* front page (impact, dataset, team, links to the map)
+  map.html, src/main.ts   map dashboard
+  public/assets/front/    front-page images (NAIP site captures, paper figures)
   public/data/            generated data served with the app
+assets/slides/            text and the authors' own figures extracted from the slide decks (reference only)
 ```
 
 ## Environment
@@ -73,6 +77,16 @@ npm run build      # static site in web/dist/, including the data/ folder
 ```
 
 URL hash state: `#map=z/lat/lon&y=<year>&t=<labelset>&s=<site ID>&about=1`. Keys `1` `2` `3` switch the NAIP year. The home button, or clicking the title, returns to the default view.
+
+## Front page content
+
+- **Gallery.** Screenshot candidates are in `assets/gallery_candidates/`. That folder isn't in git; it's a regenerable working folder on the cluster.
+  1. Copy the ones you like into `web/public/assets/gallery/`, keeping the `<SITE>_<YEAR>.jpg` names, and delete the ones you don't want.
+  2. Optionally, list the file names in `web/public/assets/gallery/order.txt` to set the order.
+  3. Run `python3 web/scripts/make_gallery.py`. It resizes the images and writes `gallery.json` with each site's state, polygon count and dead-tree area.
+- **Contributors.** Add people to `web/public/data/contributors.json`:
+  `{"name": "Jane Doe", "affiliation": "University of Maryland", "roles": ["labeling", "validation"]}`.
+  The front page lists them in the Contributors section, or shows an invitation while the list is empty.
 
 ## Deploy
 

@@ -1,4 +1,5 @@
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./tokens.css";
 import "./style.css";
 import type maplibregl from "maplibre-gl";
 import { loadSites, loadStatic, type Composite, type LabelSet, type SiteCollection, type SiteProps } from "./data";
@@ -8,7 +9,7 @@ import {
   CONUS_MAX_BOUNDS,
   createMap,
   goHome,
-  MASK_CSS,
+  PALETTES,
   maxBoundsFor,
   setLabelSet,
   setSelected,
@@ -41,6 +42,7 @@ function writeHash(updates: Record<string, string | null>) {
 const OVERLAY_KEY = "treefinder.overlays.v3"; // bump when defaults change so old choices don't stick
 const defaultOverlays: OverlayState = {
   naip: "true",
+  palette: "standard",
   polygons: true,
   mask: true,
   maskOpacity: 0.3,
@@ -64,6 +66,8 @@ function saveOverlays(o: OverlayState) {
 }
 
 const LARGE_SITE_M2 = 10_000; // 1 ha
+/** Animation length, or 0 when the viewer asked the OS for reduced motion. */
+const motionMs = (ms: number) => (matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms);
 
 const fmtArea = (m2: number) => (m2 >= 10000 ? `${(m2 / 10000).toFixed(2)} ha` : `${Math.round(m2)} m²`);
 const fmtDate = (iso: string) =>
@@ -254,13 +258,17 @@ async function main() {
     map.setMaxBounds(maxBoundsFor(p.bbox)); // lets the map reach sites outside CONUS (Hawaii)
     // Keep the site clear of the floating layer panel on wide screens.
     const right = matchMedia("(max-width: 760px)").matches ? 24 : panel.offsetWidth + 36;
-    map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 40, left: 24, right }, maxZoom: 18, duration: 800 });
+    map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 40, left: 24, right }, maxZoom: 18, duration: motionMs(800) });
   }
   function selectSite(site: string | null, zoom: boolean) {
     state.site = site && state.byName.has(site) ? site : null;
     setSelected(map, state.site);
     writeHash({ s: state.site });
     renderCard();
+    const sp = state.site ? state.byName.get(state.site) : undefined;
+    $("#sr-status").textContent = sp
+      ? `Selected site ${sp.site}, ${sp.state ?? ""}: ${sp.label_px > 0 ? `${sp.n_polygons} dead-tree polygons` : "no labels"}.`
+      : "Selection cleared.";
     updateFocus();
     const p = state.site ? state.byName.get(state.site) : undefined;
     if (p && zoom) {
@@ -301,7 +309,12 @@ async function main() {
       else if (el.type === "radio") el.checked = el.value === v;
       else el.value = String(v);
     }
-    panel.style.setProperty("--sw-mask", MASK_CSS[state.overlays.naip]); // swatch + slider follow the mask color
+    // Legend swatches and the mask slider follow the active palette.
+    const pal = PALETTES[state.overlays.palette];
+    panel.style.setProperty("--sw-mask", pal.maskCss[state.overlays.naip]);
+    panel.style.setProperty("--sw-poly", pal.polygon);
+    panel.style.setProperty("--sw-extent", pal.extent);
+    panel.dataset.palette = state.overlays.palette;
     for (const out of panel.querySelectorAll<HTMLOutputElement>("output[data-for]")) {
       out.value = `${Math.round(Number(state.overlays[out.dataset.for as keyof OverlayState]) * 100)}%`;
     }

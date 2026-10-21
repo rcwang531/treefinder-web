@@ -1,0 +1,215 @@
+===== slide 1 (4 paragraphs; media: image14.png, image10.png, image13.png, hdphoto1.wdp, image12.png, image11.png)
+   TreeFinder: Scalable AI for US-Scale Individual Tree Mortality Monitoring
+   Zhihao Wang1, Cooper Li1, Ruichen Wang1, Lei Ma1, George Hurtt1
+   Xiaowei Jia2, Gengchen Mai3, Zhili Li1, Yiqun Xie1
+   1University of Maryland, 2University of Pittsburgh, 3University of Texas at Austin
+===== slide 2 (9 paragraphs; media: image15.png, image17.jpeg, image16.jpeg)
+   Forest and Deforestation
+   Forest has absorbed ~30% CO2 emissions per year
+   Yet millions of trees die every year
+   30%
+   Bellassen & Luyssaert. Nature, 2014.
+   Large-scale Forest Clearance
+   Forest in Carbon Absorption and Climate Mitigation
+   Logging in Tropical Rainforest
+   California Camp Fire, 2018
+===== slide 3 (6 paragraphs; media: image21.png, image16.jpeg, image20.png, image19.png, image18.png, image17.jpeg)
+   Forest and Deforestation
+   Great efforts have been made to evaluate the large-scale forest loss
+   Logging in Tropical Rainforest
+   California Camp Fire, 2018
+   ...
+   Large-scale Forest Clearance
+===== slide 4 (7 paragraphs; media: image22.png, image26.png, image25.png, image24.png, image23.png)
+   Beyond Forest Clearance
+   Individual tree mortality are missed due to low resolutions.
+   A recent study found that 60% of dead trees were scattered in California
+   Missing tree mortality signals can delay risk detection and increase downstream costs in maintenance, restoration, and public safety.
+   Cheng et al. Nature Communication, 2024
+   60% Dead Trees are Scattered in CA
+   Increase Costs
+===== slide 5 (13 paragraphs; media: image27.emf, image30.png, image29.png, hdphoto2.wdp, image28.png)
+   Problem Definition
+   Goal: enable continental-scale individual tree mortality mapping
+   Build dataset with annotation labels
+   Input: high-resolution images (< 1m) with broader coverage
+   Output: detected dead trees
+   Benchmark segmentation models
+   Dataset Development
+   Annotations
+   High-Resolution
+   Imagery
+   Model Benchmarking
+   e.g., SegFormer, Mask2Former, ..
+   Semantic Segmentation Models
+===== slide 6 (21 paragraphs; media: image35.png, hdphoto6.wdp, image31.emf, hdphoto3.wdp, image37.png, image34.png, hdphoto5.wdp, image33.jpeg, image36.png, image32.png, hdphoto4.wdp)
+   Challenges
+   Weaker contrast or irregular shapes of visual signature
+   Strong spatial variability of tree types across geographical domains
+   Difficult to capture dead trees unless in high-resolution images
+   Challenging Visual Signatures
+   v.s. Traditional Geo-Objects
+   Different Distributions
+   Visual Differences Across Resolutions
+   Sharp contrast
+   Geometric shapes
+   Weak contrast
+   Irregular shapes
+   0.6m
+   NAIP
+   10m
+   Sentinel 2
+   30m
+   Landsat 8
+   Traditional Images for Large-Scale Tree Clearance
+   Latest Aerial Images
+   Source: Reddit
+===== slide 7 (18 paragraphs; media: image41.emf, image38.png, image31.emf, image40.png, hdphoto7.wdp, image39.png)
+   Related Work
+   Limitations of existing datasets for individual tree mortality detections
+   Drone-based datasets provide very high resolution (e.g., deadtree.earth), but are hard to scale
+   No comprehensive benchmarking for dead tree segmentation, especially under challenging visual conditions
+   Comparison to Existing Datasets
+   Drone images from deadtree.earth
+   NAIP images from our TreeFinder
+   Limited locations
+   High cost to flight drones
+   Collection biased towards the forest near human settlements
+   Inconsistent data resolutions
+   Full spatial coverage
+   Free aerial images
+   Consistent spectral bands
+   Regular data collection
+   Weak contrast
+   Irregular shapes
+   Challenging Visual Conditions
+===== slide 8 (11 paragraphs; media: image42.png)
+   TreeFinder Contributions
+   Dataset
+   1,000 sites
+   48 US States
+   23,000 hectares
+   0.6m resolutions
+   Benchmarking
+   6 different models
+   3 model categories
+   17 evaluation scenarios
+   2 difficulty levels
+===== slide 9 (7 paragraphs; media: image42.png, image43.png)
+   Dataset Construction
+   Collected 1,000 sites distributed across forest areas
+   Applied multispectral representations to better annotate dead trees
+   Incorporated multi-temporal information to validate annotations
+   Achieved 95% agreement in the cross-annotator assessment
+   Sample Spatial Distribution
+   Multispectral Representations
+===== slide 10 (8 paragraphs; media: image44.png, image45.jpeg, image33.jpeg)
+   Scenarios for Generalizability Evaluation
+   Random split with incremental training size
+   Cross-region scenario (simple vs. hard)
+   Cross-climate scenario (simple vs. hard)
+   Cross-forest-type scenario (simple vs. hard)
+   Cross Geo-locations
+   Cross Climate Zones
+   Cross Forest Types
+===== slide 11 (17 paragraphs; media: -)
+   Experiments
+   Candidate Methods
+   CNN-based:
+   U-Net
+   DeepLabV3+
+   Transformer-based:
+   Vision Transformer (ViT)
+   SegFormer
+   Mask2Former
+   Multimodal foundation model for covering broader remote sensing images:
+   DOFA
+   Evaluation Metrics
+   F1 score
+   Precision
+   Recall
+   Intersection over Union (IoU)
+   Accuracy
+===== slide 12 (3 paragraphs; media: image46.png, image48.png, image47.png)
+   Results for Random Split
+   Mask2Former outperforms on F1, Precision, and IoU
+   DOFA underperforms potentially due to the trade-off for covering broader platforms
+===== slide 13 (5 paragraphs; media: image49.png, image50.png)
+   Results for Different Scenarios
+   Broader spatial coverage is important for better model generalizability
+   Model performance is more sensitive in climate zones than forest types
+   Cross Climate Zones
+   Cross Forest Types
+===== slide 14 (12 paragraphs; media: image14.png, image10.png, image13.png, hdphoto1.wdp, image12.png, image11.png, image51.png)
+   Conclusion
+   TreeFinder
+   A high-resolution, US-scale benchmark dataset
+   1,000 sites over 48 states with 23,000-hectare coverage
+   Comprehensive scenarios for generalization test
+   17 evaluation scenarios
+   Diverse sets of ML models for benchmark
+   Future work
+   Expand to other regions with wall-to-wall coverage of high-resolution images
+   Expand to more ML paradigms (e.g., active learning, meta-learning)
+   Acknowledgements:
+   Contact: xie@umd.edu
+
+MEDIA:
+  hdphoto1.wdp  94 KB
+  hdphoto2.wdp  105 KB
+  hdphoto3.wdp  444 KB
+  hdphoto4.wdp  42 KB
+  hdphoto5.wdp  55 KB
+  hdphoto6.wdp  672 KB
+  hdphoto7.wdp  174 KB
+  image1.png  502 KB
+  image10.png  96 KB
+  image11.png  214 KB
+  image12.png  398 KB
+  image13.png  68 KB
+  image14.png  40 KB
+  image15.png  1451 KB
+  image16.jpeg  412 KB
+  image17.jpeg  277 KB
+  image18.png  142 KB
+  image19.png  182 KB
+  image2.png  80 KB
+  image20.png  151 KB
+  image21.png  126 KB
+  image22.png  1200 KB
+  image23.png  1870 KB
+  image24.png  1742 KB
+  image25.png  54 KB
+  image26.png  29 KB
+  image27.emf  6487 KB
+  image28.png  671 KB
+  image29.png  695 KB
+  image3.jpeg  44 KB
+  image30.png  33 KB
+  image31.emf  1763 KB
+  image32.png  4034 KB
+  image33.jpeg  7061 KB
+  image34.png  6013 KB
+  image35.png  149 KB
+  image36.png  424 KB
+  image37.png  3382 KB
+  image38.png  527 KB
+  image39.png  2052 KB
+  image4.png  47 KB
+  image40.png  2056 KB
+  image41.emf  1779 KB
+  image42.png  3086 KB
+  image43.png  1285 KB
+  image44.png  58 KB
+  image45.jpeg  465 KB
+  image46.png  146 KB
+  image47.png  2759 KB
+  image48.png  152 KB
+  image49.png  303 KB
+  image5.png  215 KB
+  image50.png  358 KB
+  image51.png  8 KB
+  image6.png  11 KB
+  image7.png  11 KB
+  image8.gif  0 KB
+  image9.gif  0 KB

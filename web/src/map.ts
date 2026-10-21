@@ -6,9 +6,40 @@ import { dataUrl, type Composite, type LabelSet, type NaipSources, type SiteColl
 
 maplibregl.addProtocol("pmtiles", new Protocol().tile);
 
-/** The mask PNGs are magenta; in false color (pink vegetation) the layer is hue-rotated to cyan. */
-export const MASK_HUE_ROTATE: Record<Composite, number> = { true: 0, false: 240 };
-export const MASK_CSS: Record<Composite, string> = { true: "#ff00c8", false: "#00c8ff" };
+export type PaletteName = "standard" | "cvd";
+interface Palette {
+  polygon: string;
+  casing: string;
+  extent: string;
+  extentDash: number[] | null;
+  /** The mask PNGs are magenta; each palette hue-rotates them per NAIP composite. */
+  maskHue: Record<Composite, number>;
+  /** CSS color of the rotated mask, for the legend swatch and slider. */
+  maskCss: Record<Composite, string>;
+}
+/**
+ * "standard": yellow outlines, magenta mask (cyan in false color, where vegetation is pink), cyan extents.
+ * "cvd": color-blind safe. Outlines and extents are told apart by lightness and line style rather
+ * than hue (white with a dark casing; extents dashed), and the mask uses Okabe-Ito orange/blue.
+ */
+export const PALETTES: Record<PaletteName, Palette> = {
+  standard: {
+    polygon: "#ffe14d",
+    casing: "#1b1f23",
+    extent: "#00e5ff",
+    extentDash: null,
+    maskHue: { true: 0, false: 240 },
+    maskCss: { true: "#ff00c8", false: "#00c8ff" },
+  },
+  cvd: {
+    polygon: "#ffffff",
+    casing: "#000000",
+    extent: "#ffffff",
+    extentDash: [3, 2],
+    maskHue: { true: 87, false: 252 },
+    maskCss: { true: "#e69f00", false: "#0072b2" },
+  },
+};
 
 export const COLORS = {
   polygon: "#ffe14d",
@@ -148,7 +179,8 @@ export function addNavigation(map: maplibregl.Map, onHome: () => void) {
 
 export function goHome(map: maplibregl.Map) {
   map.setMaxBounds(CONUS_MAX_BOUNDS);
-  map.fitBounds(HOME_BOUNDS, { duration: 800 });
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  map.fitBounds(HOME_BOUNDS, { duration: reduce ? 0 : 800 });
 }
 
 const LS_LAYERS = [
@@ -286,6 +318,7 @@ export function setSelected(map: maplibregl.Map, site: string | null) {
 
 export interface OverlayState {
   naip: Composite;
+  palette: PaletteName;
   polygons: boolean;
   mask: boolean;
   maskOpacity: number;
@@ -303,10 +336,21 @@ export function applyOverlays(map: maplibregl.Map, o: OverlayState) {
   vis("mask", o.mask);
   if (map.getLayer("mask")) {
     map.setPaintProperty("mask", "raster-opacity", o.maskOpacity);
-    map.setPaintProperty("mask", "raster-hue-rotate", MASK_HUE_ROTATE[o.naip]);
+    map.setPaintProperty("mask", "raster-hue-rotate", PALETTES[o.palette].maskHue[o.naip]);
   }
   vis("extents-line", o.outlines);
   vis("extents-selected", o.outlines);
+
+  const pal = PALETTES[o.palette];
+  const paint = (id: string, prop: string, value: unknown) => map.getLayer(id) && map.setPaintProperty(id, prop, value);
+  paint("labels-line", "line-color", pal.polygon);
+  paint("labels-casing", "line-color", pal.casing);
+  paint("labels-casing", "line-opacity", o.palette === "cvd" ? 0.9 : 0.6);
+  for (const id of ["extents-line", "extents-selected"]) {
+    paint(id, "line-color", pal.extent);
+    // MapLibre has no "solid" dash value; a 1/0 dash pattern draws a continuous line.
+    paint(id, "line-dasharray", pal.extentDash ?? [1, 0]);
+  }
 
   if (map.getLayer("site-imagery")) {
     const want = o.imagery === "nir" ? "site-nir" : "site-rgb";
