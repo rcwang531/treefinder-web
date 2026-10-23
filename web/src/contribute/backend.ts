@@ -1,8 +1,10 @@
 // Client for the contributor backend (contribute/apps-script/Code.gs), plus a demo stand-in.
 import { APPS_SCRIPT_URL, DEMO_MODE } from "./config";
 
-export type Role = "validate" | "annotate";
+export type Role = "validate" | "annotate" | "review";
 export type Answer = "dead" | "not_dead" | "unsure";
+export type Decision = "accepted" | "needs_changes" | "rejected";
+export type Status = "pending" | Decision;
 
 export interface Contributor {
   email: string;
@@ -20,9 +22,45 @@ export interface ValidationInput {
   composite: string;
 }
 
-export interface UploadResult {
-  fileName: string;
-  features: number;
+export interface ReviewSummary {
+  reviewer_name: string;
+  decision: Decision;
+  comment: string;
+  time: string;
+}
+
+export interface SubmissionSummary {
+  id: string;
+  site_id: string;
+  moved: boolean;
+  annotator: string;
+  annotator_name: string;
+  created: string;
+  naip_year: number;
+  polygons: number;
+  status: Status;
+  reviews: ReviewSummary[];
+}
+
+export interface SubmissionDetail extends SubmissionSummary {
+  /** File contents (GeoJSON text) as stored. */
+  site: string;
+  annotation: string;
+  reviewFiles: (ReviewSummary & { content: string })[];
+}
+
+export interface SubmitInput {
+  id: string;
+  site_id: string;
+  site: string;
+  annotation: string;
+}
+
+export interface ReviewInput {
+  id: string;
+  decision: Decision;
+  comment: string;
+  review: string;
 }
 
 export class BackendError extends Error {
@@ -35,7 +73,13 @@ export interface Backend {
   whoami(token: string): Promise<Contributor>;
   validate(token: string, v: ValidationInput): Promise<void>;
   myValidations(token: string): Promise<Record<string, Answer>>;
-  upload(token: string, fileName: string, site: string, content: string): Promise<UploadResult>;
+  submit(token: string, s: SubmitInput): Promise<SubmissionSummary>;
+  mySubmissions(token: string): Promise<SubmissionSummary[]>;
+  /** Reviewers only: every submission. */
+  listSubmissions(token: string): Promise<SubmissionSummary[]>;
+  /** The submitter or a reviewer. */
+  getSubmission(token: string, id: string): Promise<SubmissionDetail>;
+  saveReview(token: string, r: ReviewInput): Promise<SubmissionSummary>;
 }
 
 // ---- Apps Script web app ----
@@ -69,39 +113,102 @@ const remote: Backend = {
   async myValidations(token) {
     return (await call<{ answers: Record<string, Answer> }>("myValidations", token)).answers;
   },
-  async upload(token, fileName, site, content) {
-    return call<UploadResult>("upload", token, { fileName, site, content });
+  async submit(token, s) {
+    return (await call<{ submission: SubmissionSummary }>("submit", token, s)).submission;
+  },
+  async mySubmissions(token) {
+    return (await call<{ submissions: SubmissionSummary[] }>("mySubmissions", token)).submissions;
+  },
+  async listSubmissions(token) {
+    return (await call<{ submissions: SubmissionSummary[] }>("listSubmissions", token)).submissions;
+  },
+  async getSubmission(token, id) {
+    return (await call<{ submission: SubmissionDetail }>("getSubmission", token, { id })).submission;
+  },
+  async saveReview(token, r) {
+    return (await call<{ submission: SubmissionSummary }>("saveReview", token, r)).submission;
   },
 };
 
 // ---- demo: everything stays in this browser ----
-const DEMO_KEY = "treefinder.demo.validations";
-function readDemo(): Record<string, Answer> {
+const DEMO_USER: Contributor = {
+  email: "demo@treefinder.local",
+  name: "Demo contributor",
+  roles: ["validate", "annotate", "review"],
+  pending: false,
+};
+function readDemo<T>(key: string, fallback: T): T {
   try {
-    return JSON.parse(localStorage.getItem(DEMO_KEY) ?? "{}");
+    return JSON.parse(localStorage.getItem(key) ?? "null") ?? fallback;
   } catch {
-    return {};
+    return fallback;
   }
 }
+function writeDemo(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch {
+    /* storage unavailable: demo data lasts for this page view only */
+  }
+}
+const VAL_KEY = "treefinder.demo.validations";
+const SUB_KEY = "treefinder.demo.submissions";
+type DemoStore = Record<string, SubmissionDetail>;
+const summary = ({ site: _s, annotation: _a, reviewFiles: _r, ...rest }: SubmissionDetail): SubmissionSummary => rest;
+
 const demo: Backend = {
   async whoami() {
-    return { email: "demo@treefinder.local", name: "Demo contributor", roles: ["validate", "annotate"], pending: false };
+    return DEMO_USER;
   },
   async validate(_token, v) {
-    const all = readDemo();
-    all[v.pid] = v.answer;
-    try {
-      localStorage.setItem(DEMO_KEY, JSON.stringify(all));
-    } catch {
-      /* storage unavailable: answers last for this page view only */
-    }
+    writeDemo(VAL_KEY, { ...readDemo<Record<string, Answer>>(VAL_KEY, {}), [v.pid]: v.answer });
   },
   async myValidations() {
-    return readDemo();
+    return readDemo(VAL_KEY, {});
   },
-  async upload(_token, fileName, _site, content) {
-    const features = (JSON.parse(content) as GeoJSON.FeatureCollection).features.length;
-    return { fileName: `${fileName} (demo: not sent)`, features };
+  async submit(_token, s) {
+    const store = readDemo<DemoStore>(SUB_KEY, {});
+    const meta = JSON.parse(s.site).treefinder;
+    const detail: SubmissionDetail = {
+      id: s.id,
+      site_id: s.site_id,
+      moved: Boolean(meta.moved),
+      annotator: DEMO_USER.email,
+      annotator_name: DEMO_USER.name,
+      created: new Date().toISOString(),
+      naip_year: meta.naip_year,
+      polygons: JSON.parse(s.annotation).features.length,
+      status: "pending",
+      reviews: [],
+      site: s.site,
+      annotation: s.annotation,
+      reviewFiles: [],
+    };
+    store[s.id] = detail;
+    writeDemo(SUB_KEY, store);
+    return summary(detail);
+  },
+  async mySubmissions() {
+    return Object.values(readDemo<DemoStore>(SUB_KEY, {})).map(summary).reverse();
+  },
+  async listSubmissions() {
+    return Object.values(readDemo<DemoStore>(SUB_KEY, {})).map(summary).reverse();
+  },
+  async getSubmission(_token, id) {
+    const s = readDemo<DemoStore>(SUB_KEY, {})[id];
+    if (!s) throw new BackendError("Submission not found.", "not_found");
+    return s;
+  },
+  async saveReview(_token, r) {
+    const store = readDemo<DemoStore>(SUB_KEY, {});
+    const s = store[r.id];
+    if (!s) throw new BackendError("Submission not found.", "not_found");
+    const rev = { reviewer_name: DEMO_USER.name, decision: r.decision, comment: r.comment, time: new Date().toISOString() };
+    s.reviews.push(rev);
+    s.reviewFiles.push({ ...rev, content: r.review });
+    s.status = r.decision;
+    writeDemo(SUB_KEY, store);
+    return summary(s);
   },
 };
 

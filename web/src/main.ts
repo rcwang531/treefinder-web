@@ -3,6 +3,7 @@ import "./tokens.css";
 import "./style.css";
 import type maplibregl from "maplibre-gl";
 import { setupContribute } from "./contribute/panel";
+import { setupReview } from "./contribute/review";
 import { loadSites, loadStatic, type Composite, type LabelSet, type SiteCollection, type SiteProps } from "./data";
 import {
   addNavigation,
@@ -91,6 +92,7 @@ async function main() {
   };
 
   let contrib: ReturnType<typeof setupContribute> | null = null;
+  let review: ReturnType<typeof setupReview> | null = null;
   const map = createMap($("#map"), naip, state.overlays.naip);
   const panel = $("#layers");
   const about = $<HTMLDialogElement>("#about");
@@ -352,7 +354,7 @@ async function main() {
   // ---------- map interaction ----------
   const clickable = ["points-cluster", "points", "extents-fill"];
   map.on("click", async (e) => {
-    if (drawing || contrib?.handleMapClick(e)) return; // contributor tools get the click first
+    if (drawing || contrib?.handleMapClick(e) || review?.handleMapClick(e)) return; // contributor tools get the click first
     const layers = clickable.filter((id) => map.getLayer(id));
     const [f] = map.queryRenderedFeatures(e.point, { layers });
     if (!f) return;
@@ -451,27 +453,46 @@ async function main() {
       latestYear: (site) => years.filter((y) => availability[site]?.[y]).pop() ?? null,
       setYear,
       setDrawing: (on) => (drawing = on),
+      openReview: () => showSide("review"),
     },
     $("#contribute-view"),
   );
-  function showSide(which: "sites" | "contribute") {
-    const contribute = which === "contribute";
-    $("#sites-view").hidden = contribute;
-    $("#contribute-view").hidden = !contribute;
-    $("#side-sites").setAttribute("aria-selected", String(!contribute));
-    $("#side-contribute").setAttribute("aria-selected", String(contribute));
-    writeHash({ contribute: contribute ? "1" : null });
-    contrib!.show(contribute);
+  review = setupReview(
+    {
+      map,
+      setYear,
+      setDrawing: (on) => (drawing = on),
+      zoomToBounds: ([w, s, e, n]) => {
+        map.setMaxBounds(maxBoundsFor([w, s, e, n])); // a moved square may sit far from any site
+        const right = matchMedia("(max-width: 760px)").matches ? 24 : panel.offsetWidth + 36;
+        map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 40, left: 24, right }, maxZoom: 18, duration: motionMs(800) });
+      },
+    },
+    $("#review-view"),
+  );
+  type Side = "sites" | "contribute" | "review";
+  function showSide(which: Side) {
+    for (const s of ["sites", "contribute", "review"] as Side[]) {
+      $(`#${s}-view`).hidden = s !== which;
+      $(`#side-${s}`).setAttribute("aria-selected", String(s === which));
+    }
+    writeHash({ contribute: which === "contribute" ? "1" : null, review: which === "review" ? "1" : null });
+    // Hide the other tab's map tools before showing this one's.
+    if (which !== "contribute") contrib!.show(false);
+    if (which !== "review") review!.show(false);
+    if (which === "contribute") contrib!.show(true);
+    if (which === "review") review!.show(true);
   }
   $("#side-sites").onclick = () => showSide("sites");
   $("#side-contribute").onclick = () => showSide("contribute");
+  $("#side-review").onclick = () => showSide("review");
 
   // ---------- start ----------
   syncPanel();
   setYear(state.year);
   await switchTab(state.tab);
-  if (hash.contribute) {
-    showSide("contribute");
+  if (hash.contribute || hash.review) {
+    showSide(hash.review ? "review" : "contribute");
     document.body.classList.add("drawer-open");
   }
   if (state.site) {

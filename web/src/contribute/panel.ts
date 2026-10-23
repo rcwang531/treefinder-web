@@ -1,11 +1,13 @@
-// Contributor features on the map page: sign-in, polygon validation and drawing new labels.
+// "Contribute" tab: validate existing labels, or draw new ones in a (movable) site square and
+// submit them together with the site information.
 import maplibregl from "maplibre-gl";
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode, ValidateNotSelfIntersecting } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
-import { currentSession, renderSignIn, signOut, type Session } from "./auth";
-import { backend, BackendError, type Answer, type Contributor, type Role } from "./backend";
-import { DEMO_MODE } from "./config";
-import { buildExport, checkUpload, exportFileName, polygonInside } from "./geo";
+import { backend, type Answer, type Role } from "./backend";
+import { SiteFrame, type FrameState } from "./frame";
+import { polygonInside } from "./geo";
+import { demoNote, esc, mountSignIn, store, userBlock, wireSignOut } from "./session";
+import { buildAnnotation, buildSite, download, fileName, newSubmissionId, readSubmission } from "./submission";
 
 export interface ContributeHost {
   map: maplibregl.Map;
@@ -18,6 +20,8 @@ export interface ContributeHost {
   setYear(year: number): void;
   /** While drawing, the map's own click handling (site selection) must stand down. */
   setDrawing(active: boolean): void;
+  /** Switch the sidebar to the Review tab (to see one's submissions). */
+  openReview(): void;
 }
 
 type Mode = "validate" | "draw";
@@ -27,58 +31,70 @@ const ANSWERS: { value: Answer; label: string; key: string }[] = [
   { value: "not_dead", label: "No", key: "n" },
   { value: "unsure", label: "Not sure", key: "u" },
 ];
-const DRAFT_PREFIX = "treefinder.draft";
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
+const DRAFT_PREFIX = "treefinder.draft2";
+
+interface Draft {
+  frame: FrameState;
+  polygons: GeoJSON.Polygon[];
+}
 
 export function setupContribute(host: ContributeHost, root: HTMLElement) {
   const { map } = host;
-  let session: Session | null = currentSession();
-  let user: Contributor | null = null;
   let mode: Mode = "validate";
   let answers: Record<string, Answer> = {};
   let message = "";
+  let visible = false;
+  let active = false;
+
+  store.subscribe(async () => {
+    if (store.has("validate")) {
+      try {
+        answers = await backend.myValidations(store.token);
+      } catch (e) {
+        message = store.fail(e);
+      }
+    } else answers = {};
+    paintAnswers();
+    if (!store.user) deactivate();
+    render();
+    activateMode();
+  });
 
   // ---------- rendering ----------
   function render() {
-    const demo = DEMO_MODE
-      ? `<p class="contrib-demo" role="note"><b>Demo mode.</b> The contribution service isn't connected yet, so sign-in is simulated and answers stay in this browser.</p>`
-      : "";
-    if (!session || !user) {
-      root.innerHTML = `${demo}
+    const u = store.user;
+    if (!store.session || !u) {
+      root.innerHTML = `${demoNote()}
         <h2>Contribute</h2>
         <p>Approved contributors can check existing labels and draw new ones.</p>
         <ul class="contrib-roles">
           <li><b>Validate</b>: click a labeled polygon and answer one question: is this tree dead?</li>
-          <li><b>Draw</b>: outline dead trees at a TreeFinder site on its latest NAIP imagery, download them as GeoJSON and upload the file.</li>
+          <li><b>Draw</b>: place a site square (move it anywhere in the US if you like), outline the dead trees in it and submit them. A reviewer checks every submission.</li>
         </ul>
-        <div id="signin-slot" class="signin-slot"></div>
+        <div class="signin-slot"></div>
         <p class="muted small">No account yet? Sign in and an access request is recorded for the team, or email
           <a href="mailto:ruichenw@umd.edu?subject=TreeFinder%20contributor%20access">ruichenw@umd.edu</a>.</p>
-        <p class="contrib-msg" role="status">${esc(message)}</p>`;
-      renderSignIn(root.querySelector("#signin-slot")!, onSignIn).catch((e) => {
-        message = String(e.message ?? e);
-        root.querySelector(".contrib-msg")!.textContent = message;
-      });
+        <p class="contrib-msg" role="status">${esc(store.message || message)}</p>`;
+      mountSignIn(root.querySelector(".signin-slot")!, say);
       return;
     }
-    const who = `<p class="contrib-user">Signed in as <b>${esc(user.name)}</b><br><span class="muted">${esc(user.email)}</span>
-      <button id="signout" class="contrib-link" type="button">Sign out</button></p>`;
-    if (user.pending || !user.roles.length) {
-      root.innerHTML = `${demo}<h2>Contribute</h2>${who}
-        <p>Your account isn't on the contributor list yet. Your request has been recorded and the team will review it.</p>`;
-      root.querySelector<HTMLButtonElement>("#signout")!.onclick = doSignOut;
+    if (u.pending || !(u.roles.includes("validate") || u.roles.includes("annotate"))) {
+      root.innerHTML = `${demoNote()}<h2>Contribute</h2>${userBlock()}
+        <p>${u.pending ? "Your account isn't on the contributor list yet. Your request has been recorded and the team will review it." : "Your account can review submissions (see the Review tab) but not contribute labels."}</p>`;
+      wireSignOut(root);
       return;
     }
-    if (!user.roles.includes(roleFor(mode))) mode = user.roles[0] === "annotate" ? "draw" : "validate";
-    const tabs = user.roles.length > 1
+    if (!u.roles.includes(roleFor(mode))) mode = u.roles.includes("validate") ? "validate" : "draw";
+    const both = u.roles.includes("validate") && u.roles.includes("annotate");
+    const tabs = both
       ? `<div class="contrib-modes" role="radiogroup" aria-label="Contribution mode">
           <button type="button" role="radio" aria-checked="${mode === "validate"}" data-mode="validate">Validate</button>
           <button type="button" role="radio" aria-checked="${mode === "draw"}" data-mode="draw">Draw</button>
         </div>`
       : "";
-    root.innerHTML = `${demo}<h2>Contribute</h2>${who}${tabs}<div id="contrib-body"></div>
+    root.innerHTML = `${demoNote()}<h2>Contribute</h2>${userBlock()}${tabs}<div id="contrib-body"></div>
       <p class="contrib-msg" role="status" aria-live="polite">${esc(message)}</p>`;
-    root.querySelector<HTMLButtonElement>("#signout")!.onclick = doSignOut;
+    wireSignOut(root);
     root.querySelectorAll<HTMLButtonElement>("[data-mode]").forEach((b) => (b.onclick = () => setMode(b.dataset.mode as Mode)));
     if (mode === "validate") renderValidate();
     else renderDraw();
@@ -90,47 +106,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     if (el) el.textContent = text;
   }
 
-  // ---------- sign-in ----------
-  async function onSignIn(s: Session) {
-    session = s;
-    say("Checking your contributor access…");
-    try {
-      user = await backend.whoami(s.token);
-      if (user.roles.includes("validate")) {
-        answers = await backend.myValidations(s.token);
-        paintAnswers();
-      }
-      say("");
-    } catch (e) {
-      handleError(e);
-    }
-    render();
-    activateMode();
-  }
-  function doSignOut() {
-    deactivate();
-    signOut();
-    session = null;
-    user = null;
-    answers = {};
-    paintAnswers();
-    message = "Signed out.";
-    render();
-  }
-  function handleError(e: unknown) {
-    if (e instanceof BackendError && (e.code === "auth" || e.code === "expired")) {
-      signOut();
-      session = null;
-      user = null;
-      say("Your sign-in expired. Please sign in again.");
-      render();
-      return;
-    }
-    say(e instanceof Error ? e.message : String(e));
-  }
-
   // ---------- mode switching ----------
-  let active = false;
   function setMode(m: Mode) {
     deactivate();
     mode = m;
@@ -138,9 +114,8 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     render();
     activateMode();
   }
-  /** Turn on the current mode's map interaction (called when the Contribute view is shown). */
   function activateMode() {
-    if (!user || user.pending || !visible) return;
+    if (!visible || !store.has(roleFor(mode))) return;
     active = true;
     if (mode === "draw") startDrawing();
   }
@@ -188,7 +163,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     const choose = async (answer: Answer) => {
       box.querySelectorAll("button").forEach((b) => (b.disabled = true));
       try {
-        await backend.validate(session!.token, { pid, site, answer, naip_year: year, composite: host.composite() });
+        await backend.validate(store.token, { pid, site, answer, naip_year: year, composite: host.composite() });
         answers[pid] = answer;
         map.setFeatureState({ source: "labels", sourceLayer: "labels", id: pid }, { answer });
         say(`Saved: ${pid} marked "${ANSWERS.find((a) => a.value === answer)!.label}".`);
@@ -196,7 +171,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
         popup?.remove();
       } catch (e) {
         box.querySelectorAll("button").forEach((b) => (b.disabled = false));
-        handleError(e);
+        say(store.fail(e));
       }
     };
     box.querySelectorAll<HTMLButtonElement>("[data-answer]").forEach((b) => (b.onclick = () => choose(b.dataset.answer as Answer)));
@@ -228,12 +203,16 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
   // ---------- drawing ----------
   let draw: TerraDraw | null = null;
   let drawSite: string | null = null;
-  const draftKey = (site: string) => `${DRAFT_PREFIX}.${user?.email ?? "anon"}.${site}`;
+  let moving = false;
+  const frame = new SiteFrame(map, () => {
+    saveDraft();
+    renderDraw();
+  });
+  const draftKey = (site: string) => `${DRAFT_PREFIX}.${store.user?.email ?? "anon"}.${site}`;
 
-  function siteValidation(feature: { geometry: GeoJSON.Geometry }) {
-    const site = drawSite ? host.extentOf(drawSite) : null;
-    if (feature.geometry.type !== "Polygon" || !site) return { valid: false, reason: "Not a polygon" };
-    if (!polygonInside(feature.geometry, site)) return { valid: false, reason: "Outside the site" };
+  function insideFrame(feature: { geometry: GeoJSON.Geometry }) {
+    if (feature.geometry.type !== "Polygon" || !drawSite) return { valid: false, reason: "Not a polygon" };
+    if (!polygonInside(feature.geometry, frame.geometry())) return { valid: false, reason: "Outside the site square" };
     return ValidateNotSelfIntersecting(feature as never);
   }
 
@@ -244,15 +223,15 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
       closingPointColor: "#ffffff", closingPointOutlineColor: "#ff9100",
     } as const;
     draw = new TerraDraw({
-      adapter: new TerraDrawMapLibreGLAdapter({ map }),
+      adapter: new TerraDrawMapLibreGLAdapter({ map, prefixId: "td-contrib" }),
       modes: [
-        new TerraDrawPolygonMode({ styles: polygonStyle, validation: (f) => siteValidation(f) }),
+        new TerraDrawPolygonMode({ styles: polygonStyle, validation: (f) => insideFrame(f) }),
         new TerraDrawSelectMode({
           flags: {
             polygon: {
               feature: {
                 draggable: true,
-                validation: (f) => siteValidation(f),
+                validation: (f) => insideFrame(f),
                 coordinates: { draggable: true, midpoints: true, deletable: true },
               },
             },
@@ -275,88 +254,118 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
   }
   function saveDraft() {
     if (!drawSite) return;
+    const d: Draft = { frame: frame.state(), polygons: polygons() };
     try {
-      localStorage.setItem(draftKey(drawSite), JSON.stringify(polygons()));
+      localStorage.setItem(draftKey(drawSite), JSON.stringify(d));
     } catch {
       /* storage unavailable: the draft lasts for this page view */
     }
   }
-  function loadDraft(site: string) {
-    let saved: GeoJSON.Polygon[] = [];
+  function readDraft(site: string): Draft | null {
     try {
-      saved = JSON.parse(localStorage.getItem(draftKey(site)) ?? "[]");
+      return JSON.parse(localStorage.getItem(draftKey(site)) ?? "null");
     } catch {
-      saved = [];
-    }
-    if (saved.length) {
-      draw!.addFeatures(
-        saved.map((geometry) => ({ id: crypto.randomUUID(), type: "Feature", geometry, properties: { mode: "polygon" } })),
-      );
+      return null;
     }
   }
 
   function startDrawing() {
     const s = host.site();
     if (!s) {
+      stopDrawing();
       renderDraw();
       return;
     }
-    // Label on the most recent imagery available for this site.
-    const latest = host.latestYear(s.id);
-    if (latest && latest !== host.year()) host.setYear(latest);
     const d = ensureDraw();
     if (drawSite !== s.id) {
       saveDraft();
       d.clear();
       drawSite = s.id;
-      loadDraft(s.id);
+      const draft = readDraft(s.id);
+      frame.set(s.id, s.extent, draft?.frame.center);
+      if (draft?.polygons.length) {
+        d.addFeatures(
+          draft.polygons.map((geometry) => ({ id: crypto.randomUUID(), type: "Feature", geometry, properties: { mode: "polygon" } })),
+        );
+      }
+      // Label on the most recent imagery available here (unknown once the square has moved away).
+      const latest = host.latestYear(s.id);
+      if (!frame.moved && latest && latest !== host.year()) host.setYear(latest);
     }
     host.setDrawing(true);
-    d.setMode("polygon");
+    if (!moving) d.setMode("polygon");
     renderDraw();
   }
   function stopDrawing() {
-    if (!draw) return;
-    saveDraft();
-    draw.setMode("static");
+    if (draw) {
+      saveDraft();
+      draw.setMode("static");
+    }
+    setMoving(false);
+    frame.hide();
+    drawSite = null;
+    draw?.clear();
     host.setDrawing(false);
+  }
+  function setMoving(on: boolean) {
+    moving = on;
+    frame.setMovable(on);
+    if (on) draw?.setMode("static");
+    else if (active && mode === "draw" && drawSite) draw?.setMode("polygon");
   }
 
   function updateDrawCount() {
+    const n = polygons().length;
     const el = root.querySelector("#draw-count");
-    if (el) {
-      const n = polygons().length;
-      el.textContent = `${n} polygon${n === 1 ? "" : "s"} drawn · draft saved in this browser`;
-    }
-    root.querySelectorAll<HTMLButtonElement>("[data-needs-polys]").forEach((b) => (b.disabled = !polygons().length));
+    if (el) el.textContent = `${n} polygon${n === 1 ? "" : "s"} drawn · draft saved in this browser`;
+    root.querySelectorAll<HTMLButtonElement>("[data-needs-polys]").forEach((b) => (b.disabled = !n));
+    const mv = root.querySelector<HTMLButtonElement>("[data-act=move]");
+    if (mv) mv.disabled = n > 0 && !moving;
   }
 
   function renderDraw() {
     const body = root.querySelector("#contrib-body");
-    if (!body) return;
+    if (!body || mode !== "draw") return;
     const s = host.site();
-    if (!s) {
-      body.innerHTML = `<p><b>Select a site first</b> (in the Sites tab, or by clicking one on the map). Drawing is limited to the 1,000 TreeFinder sites.</p>`;
+    if (!s || !drawSite) {
+      body.innerHTML = `<p><b>Select a site first</b> (in the Sites tab, or by clicking one on the map). Its square is where you'll draw; you can move it afterwards.</p>`;
       return;
     }
-    const tool = draw?.getMode() ?? "static";
+    const [east, north] = frame.offsetMeters().map(Math.round);
+    const where = frame.moved
+      ? `moved ${Math.abs(east)} m ${east >= 0 ? "east" : "west"}, ${Math.abs(north)} m ${north >= 0 ? "north" : "south"}`
+      : "original position";
+    const tool = moving ? "move" : draw?.getMode() ?? "static";
     body.innerHTML = `
-      <p class="draw-site">Site <b>${esc(s.id)}</b> · NAIP ${host.year()}</p>
+      <p class="draw-site">Site <b>${esc(s.id)}</b> · NAIP ${host.year()}<br><span class="muted small">Square: ${where}</span></p>
+      <div class="draw-tools" role="toolbar" aria-label="Site square">
+        <button type="button" data-act="move" aria-pressed="${moving}">${moving ? "Done moving" : "Move site"}</button>
+        <button type="button" data-act="reset" ${frame.moved ? "" : "disabled"}>Reset position</button>
+      </div>
+      <p class="muted small">${moving
+        ? "Drag the dashed square to a new spot. Its size and orientation stay the same."
+        : "Move the square before drawing; it's locked while it contains polygons."}</p>
       <div class="draw-tools" role="toolbar" aria-label="Drawing tools">
-        <button type="button" data-tool="polygon" aria-pressed="${tool === "polygon"}">Draw</button>
-        <button type="button" data-tool="select" aria-pressed="${tool === "select"}">Edit</button>
+        <button type="button" data-tool="polygon" aria-pressed="${tool === "polygon"}" ${moving ? "disabled" : ""}>Draw</button>
+        <button type="button" data-tool="select" aria-pressed="${tool === "select"}" ${moving ? "disabled" : ""}>Edit</button>
         <button type="button" data-act="clear" data-needs-polys>Clear all</button>
       </div>
       <p class="muted small">Click to add corners; click the first corner or press <kbd>Enter</kbd> to finish, <kbd>Esc</kbd> to cancel.
-        In Edit, drag corners or the shape; select a polygon and press <kbd>Delete</kbd> to remove it. Polygons must stay inside the site.</p>
+        In Edit, drag corners or the shape; select a polygon and press <kbd>Delete</kbd> to remove it. Polygons must stay inside the square.</p>
       <p id="draw-count" class="draw-count"></p>
-      <button type="button" class="contrib-btn" data-act="download" data-needs-polys>Download GeoJSON</button>
-      <h3>Upload</h3>
-      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload a GeoJSON file: drop it here or press Enter to choose a file">
-        Drop a downloaded <b>.geojson</b> file here, or <u>choose a file</u>
-        <input id="upload-file" type="file" accept=".geojson,.json,application/geo+json,application/json" hidden />
+      <button type="button" class="contrib-btn" data-act="download" data-needs-polys>Download site + annotation</button>
+      <button type="button" class="contrib-btn primary" data-act="submit" data-needs-polys>Submit for review</button>
+      <h3>Upload saved files</h3>
+      <div id="dropzone" class="dropzone" tabindex="0" role="button" aria-label="Upload saved files: drop them here or press Enter to choose files">
+        Drop the downloaded <b>site</b> and <b>annotation</b> files here, or <u>choose files</u>
+        <input id="upload-file" type="file" multiple accept=".geojson,.json,application/geo+json,application/json" hidden />
       </div>
-      <button type="button" class="contrib-btn primary" data-act="upload-current" data-needs-polys>Upload current drawing</button>`;
+      <p class="muted small">Submitted work and reviewer feedback are in the <button type="button" class="contrib-link" data-act="mine">Review tab</button>.</p>`;
+    body.querySelector<HTMLButtonElement>("[data-act=move]")!.onclick = () => {
+      setMoving(!moving);
+      renderDraw();
+    };
+    body.querySelector<HTMLButtonElement>("[data-act=reset]")!.onclick = () => frame.reset();
     body.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
       b.onclick = () => {
         ensureDraw().setMode(b.dataset.tool!);
@@ -371,15 +380,16 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
       }
     };
     body.querySelector<HTMLButtonElement>("[data-act=download]")!.onclick = downloadCurrent;
-    body.querySelector<HTMLButtonElement>("[data-act=upload-current]")!.onclick = () => {
-      const fc = buildExport(polygons(), { site: s.id, naip_year: host.year(), annotator: user!.email });
-      uploadText(exportFileName(s.id, user!.email), JSON.stringify(fc));
+    body.querySelector<HTMLButtonElement>("[data-act=submit]")!.onclick = () => {
+      const { site, annotation } = current();
+      submit(site, annotation);
     };
+    body.querySelector<HTMLButtonElement>("[data-act=mine]")!.onclick = () => host.openReview();
     const zone = body.querySelector<HTMLElement>("#dropzone")!;
     const input = body.querySelector<HTMLInputElement>("#upload-file")!;
     zone.onclick = () => input.click();
     zone.onkeydown = (e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), input.click());
-    input.onchange = () => input.files?.[0] && uploadFile(input.files[0]);
+    input.onchange = () => input.files?.length && uploadFiles([...input.files]);
     zone.ondragover = (e) => {
       e.preventDefault();
       zone.classList.add("over");
@@ -388,52 +398,68 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     zone.ondrop = (e) => {
       e.preventDefault();
       zone.classList.remove("over");
-      const f = e.dataTransfer?.files[0];
-      if (f) uploadFile(f);
+      if (e.dataTransfer?.files.length) uploadFiles([...e.dataTransfer.files]);
     };
     updateDrawCount();
   }
 
+  /** The current square and polygons as a site file + annotation file pair. */
+  function current() {
+    const id = newSubmissionId(drawSite!, store.user!.email);
+    const site = buildSite({
+      id,
+      site_id: drawSite!,
+      frame: frame.geometry(),
+      moved: frame.moved,
+      offset_m: frame.offsetMeters(),
+      size_m: frame.sizeMeters(),
+      naip_year: host.year(),
+      annotator: store.user!.email,
+    });
+    return { site, annotation: buildAnnotation(polygons(), site) };
+  }
   function downloadCurrent() {
-    const s = host.site()!;
-    const fc = buildExport(polygons(), { site: s.id, naip_year: host.year(), annotator: user!.email });
-    const url = URL.createObjectURL(new Blob([JSON.stringify(fc, null, 1)], { type: "application/geo+json" }));
-    const a = Object.assign(document.createElement("a"), { href: url, download: exportFileName(s.id, user!.email) });
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    say(`Downloaded ${a.download}. Upload it below to share it with the team.`);
+    const { site, annotation } = current();
+    const id = site.treefinder.submission_id;
+    download(fileName(id, "site"), site);
+    setTimeout(() => download(fileName(id, "annotation"), annotation), 400); // browsers drop back-to-back downloads
+    say(`Downloaded ${fileName(id, "site")} and ${fileName(id, "annotation")}. Upload both below, or press Submit.`);
   }
-  async function uploadFile(file: File) {
-    uploadText(file.name, await file.text());
-  }
-  async function uploadText(fileName: string, text: string) {
-    let checked;
+  async function uploadFiles(files: File[]) {
     try {
-      checked = checkUpload(text, host.extentOf);
+      const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })));
+      const { site, annotation } = readSubmission(texts, (id) => Boolean(host.extentOf(id)));
+      submit(site, annotation);
     } catch (e) {
-      say(`Can't upload ${fileName}: ${(e as Error).message}`);
-      return;
+      say(`Can't upload: ${(e as Error).message}`);
     }
-    say(`Uploading ${fileName}…`);
+  }
+  async function submit(site: ReturnType<typeof buildSite>, annotation: ReturnType<typeof buildAnnotation>) {
+    const id = site.treefinder.submission_id;
+    say(`Submitting ${id}…`);
     try {
-      const r = await backend.upload(session!.token, fileName, checked.site, checked.content);
-      say(`Uploaded ${r.features} polygon${r.features === 1 ? "" : "s"} for ${checked.site} as ${r.fileName}. Thank you!`);
+      const r = await backend.submit(store.token, {
+        id,
+        site_id: site.treefinder.site_id,
+        site: JSON.stringify(site),
+        annotation: JSON.stringify(annotation),
+      });
+      say(`Submitted ${r.polygons} polygon${r.polygons === 1 ? "" : "s"} as ${r.id}. A reviewer will check it; feedback appears in the Review tab.`);
     } catch (e) {
-      handleError(e);
+      say(store.fail(e));
     }
   }
 
-  // ---------- visibility (Contribute view shown or hidden) ----------
-  let visible = false;
+  // ---------- visibility (Contribute tab shown or hidden) ----------
   function show(on: boolean) {
     visible = on;
-    if (on) activateMode();
-    else deactivate();
+    if (on) {
+      render();
+      activateMode();
+    } else deactivate();
   }
 
-  // A session from earlier in this tab: restore it quietly.
-  if (session) onSignIn(session);
-  else render();
+  render();
 
   return {
     show,

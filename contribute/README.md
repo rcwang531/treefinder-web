@@ -1,14 +1,43 @@
-# TreeFinder contributions: setup
+# TreeFinder contributions: setup and workflow
 
-The map's **Contribute** tab lets approved contributors
+The map has two tabs for approved contributors, next to **Sites**:
 
-- **validate** labels: click a polygon and answer *Is this a dead tree?* (Yes / No / Not sure)
-- **draw** new labels at a TreeFinder site on its latest NAIP year, **download** them as GeoJSON and **upload** the file.
+- **Contribute**
+  - **Validate**: click a label polygon and answer *Is this a dead tree?* (Yes / No / Not sure).
+  - **Draw**: pick a site. Its square can be **moved anywhere in the contiguous US**; only its position changes, not its size or orientation.
+    Outline the dead trees inside it, then **download** the *site file* and the *annotation file* and/or **submit** them for review.
+- **Review**
+  - Reviewers open each submission on the map at its NAIP year.
+  - They mark every polygon **Correct / Incorrect / Needs edit**, optionally with a comment, and can **add trees that were missed**.
+  - They choose **Accept / Needs changes / Reject** with a comment, then submit or download the review.
+  - Annotators see their own submissions here with the status, the comments, and the reviewer's marks on the map.
 
-GitHub Pages can't store anything, so sign-in checks, answers and uploads go to a small
-**Google Apps Script** web app (`apps-script/Code.gs`). It keeps answers in a **Google Sheet**
-and puts uploaded files in a **shared Google Drive folder**. Until it is configured, the site runs
-in **demo mode**: sign-in is simulated and nothing leaves the browser.
+GitHub Pages can't store anything, so this runs on a small **Google Apps Script** web app
+(`apps-script/Code.gs`) using a **Google Sheet** and a **shared Google Drive folder**. Everything stays
+private to the team. Until it is configured, the site runs in **demo mode**: sign-in is simulated and
+everything stays in the browser.
+
+## Files
+
+Every submission has an ID like `CO_001-jdoe-20261023-1530` (site, contributor, UTC time) and up to three kinds of GeoJSON files.
+Each is a FeatureCollection with a top-level `treefinder` block.
+
+| File | `treefinder.kind` | Contents |
+|---|---|---|
+| `…_site.geojson` | `site` | The square that was annotated: `site_id` (the TreeFinder site it started from), `moved`, `offset_m` (meters east/north), `size_m` and `naip_year` |
+| `…_annotation.geojson` | `annotation` | The dead-tree polygons (`id`, `area_m2`, `naip_year`), plus a copy of the square in `site_frame` |
+| `…_review_<reviewer>.geojson` | `review` | The annotation's polygons with `review_verdict` and `review_comment`, any trees the reviewer added (`added_by_reviewer: true`), and the reviewer's `decision` and `comment` |
+
+In Drive, the service files them per contributor and submission:
+
+```
+<your folder>/contributions/<contributor>/<submission id>/site.geojson
+                                                         annotation.geojson
+                                                         review_<reviewer>_<UTC time>.geojson
+```
+
+**Publishing is manual.** When the team decides accepted work should join the dataset, copy those
+folders out of Drive and merge them into the label data. Nothing is published automatically.
 
 ## One-time setup (about 20 minutes)
 
@@ -27,14 +56,14 @@ in **demo mode**: sign-in is simulated and nothing leaves the browser.
 ### 2. Sheet, Drive folder and script
 
 1. Create a Google Sheet, e.g. "TreeFinder contributions".
-2. Create a Drive folder for uploads, e.g. "TreeFinder uploads", and share it with the team.
+2. Create a Drive folder, e.g. "TreeFinder contributions", and share it with the team.
    Copy its ID from the folder URL: `drive.google.com/drive/folders/<FOLDER_ID>`.
 3. In the Sheet, open **Extensions → Apps Script**, replace the editor contents with `apps-script/Code.gs` and save.
 4. **Project Settings → Script properties**, add:
    - `CLIENT_ID` = the client ID from step 1
    - `FOLDER_ID` = the Drive folder ID
 5. In the editor, choose the function **`setup`** and click **Run**. Approve the permissions it asks for (Sheets, Drive, external requests).
-   This creates the tabs `Contributors`, `Requests`, `Validations` and `Uploads`.
+   This creates the tabs `Contributors`, `Requests`, `Validations`, `Submissions` and `Reviews`.
 6. **Deploy → New deployment → Web app**:
    - Set **Execute as** to *Me*.
    - Set **Who has access** to *Anyone*. This only makes the URL reachable; every request still needs a valid Google sign-in for your client ID.
@@ -51,27 +80,31 @@ export const APPS_SCRIPT_URL = "https://script.google.com/macros/s/…/exec";
 
 Commit and push. The demo banner disappears and the Google sign-in button appears.
 
-## Approving contributors
+## Approving contributors and reviewers
 
-When someone signs in who isn't on the list, their email is added to the **Requests** tab and the
-site tells them their request was recorded. To approve them, add a row to **Contributors**:
+When someone signs in who isn't on the list, their email is added to the **Requests** tab. To approve them, add a row to **Contributors**:
 
 | email | name | roles | active |
 |---|---|---|---|
 | jane@umd.edu | Jane Doe | validate, annotate | TRUE |
+| lee@umd.edu | Lee Chen | review | TRUE |
 
-`roles` is `validate`, `annotate`, or both. Set `active` to `FALSE` to pause an account. Changes take effect at the contributor's next sign-in.
+The roles are:
 
-## What gets stored
+- `validate` lets someone answer the polygon question.
+- `annotate` lets them draw and submit.
+- `review` lets them see and review every submission.
 
-- **Validations** gets one row per answer: time, email, site, polygon ID (e.g. `CO_001-007`), answer, NAIP year and composite.
-  A contributor's latest answer per polygon is what the map shows them.
-- **Uploads** gets one row per file. The file itself goes into the Drive folder as `<site>_<email>_<UTC time>.geojson`.
-  Each file is a GeoJSON FeatureCollection of polygons with `site`, `naip_year`, `annotator`,
-  `label` and `area_m2` properties, plus a top-level `treefinder` block with the same details.
+Set `active` to `FALSE` to pause an account. Changes take effect at the contributor's next sign-in.
 
-Limits: 2 MB and 2,000 polygons per file, polygons only, and polygons must lie inside the site.
-The site enforces all of these; the script re-checks everything except the inside-the-site rule.
+## Where things are recorded
+
+- **Validations**: one row per answer (time, email, site, polygon ID such as `CO_001-007`, answer, NAIP year, composite).
+- **Submissions**: one row per submission. It records the contributor, the site, whether the square moved, the polygon count, the status (`pending`, `accepted`, `needs_changes` or `rejected`) and the Drive folder.
+- **Reviews**: one row per review (reviewer, decision, comment, file), together with the review file in the submission's folder.
+
+Limits: 2 MB per file and 2,000 polygons per submission, polygons only, and polygons must lie inside the square.
+The site checks these, and the script checks them again.
 
 ## Updating the script
 
