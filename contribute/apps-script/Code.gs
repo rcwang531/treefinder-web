@@ -5,7 +5,7 @@
  *   Contributors  email | name | roles | active      roles: any of "validate", "annotate", "review"
  *   Requests      requested_at | email | name        sign-ins from accounts not on the list
  *   Validations   time | email | site | pid | answer | naip_year | composite
- *   Submissions   time | id | email | name | site_id | moved | naip_year | polygons | status | folder_id |
+ *   Submissions   time | id | email | name | site_id | placed | naip_year | polygons | status | folder_id |
  *                 site_file_id | annotation_file_id | reviewed_at
  *   Reviews       time | submission_id | reviewer | reviewer_name | decision | comment | file_id
  *
@@ -31,12 +31,12 @@ const DECISIONS = ["accepted", "needs_changes", "rejected"];
 const ROLES = ["validate", "annotate", "review"];
 const SITE_RE = /^[A-Z]{2}_\d{3}$/;
 const PID_RE = /^[A-Z]{2}_\d{3}-\d{3}$/;
-const SUB_RE = /^[A-Z]{2}_\d{3}-[a-z0-9_]{1,40}-\d{8}-\d{4}$/;
+const SUB_RE = /^(?:[A-Z]{2}_\d{3}|NEW)-[a-z0-9_]{1,40}-\d{8}-\d{4}$/; // NEW = a square the contributor placed
 const TABS = {
   Contributors: ["email", "name", "roles", "active"],
   Requests: ["requested_at", "email", "name"],
   Validations: ["time", "email", "site", "pid", "answer", "naip_year", "composite"],
-  Submissions: ["time", "id", "email", "name", "site_id", "moved", "naip_year", "polygons", "status", "folder_id",
+  Submissions: ["time", "id", "email", "name", "site_id", "placed", "naip_year", "polygons", "status", "folder_id",
     "site_file_id", "annotation_file_id", "reviewed_at"],
   Reviews: ["time", "submission_id", "reviewer", "reviewer_name", "decision", "comment", "file_id"],
 };
@@ -184,7 +184,7 @@ function inRing_(pt, ring) {
 }
 
 function submit_(who, req) {
-  if (!SUB_RE.test(req.id) || !SITE_RE.test(req.site_id) || req.id.indexOf(req.site_id + "-") !== 0) {
+  if (!SUB_RE.test(req.id) || !(SITE_RE.test(req.site_id) || req.site_id === "NEW") || req.id.indexOf(req.site_id + "-") !== 0) {
     throw fail_("Unknown submission or site.", "bad_request");
   }
   const site = readGeojson_(req.site, "The site file");
@@ -206,7 +206,7 @@ function submit_(who, req) {
   const annFile = folder.createFile("annotation.geojson", req.annotation, "application/geo+json");
   const meta = site.treefinder;
   withLock_(() => {
-    sheet_("Submissions").appendRow([new Date(), req.id, who.email, who.name, req.site_id, Boolean(meta.moved), Number(meta.naip_year) || "",
+    sheet_("Submissions").appendRow([new Date(), req.id, who.email, who.name, req.site_id, Boolean(meta.placed), Number(meta.naip_year) || "",
       ann.features.length, "pending", folder.getId(), siteFile.getId(), annFile.getId(), ""]);
   });
   return submissions_((s) => s.id === req.id)[0];
@@ -226,7 +226,7 @@ function summary_(r, reviews) {
   return {
     id: String(r.id),
     site_id: String(r.site_id),
-    moved: r.moved === true || String(r.moved).toUpperCase() === "TRUE",
+    placed: r.placed === true || String(r.placed).toUpperCase() === "TRUE",
     annotator: String(r.email),
     annotator_name: String(r.name),
     created: new Date(r.time).toISOString(),

@@ -85,7 +85,7 @@ export function setupReview(host: ReviewHost, root: HTMLElement) {
   function item(s: SubmissionSummary, forReview: boolean) {
     const last = s.reviews[s.reviews.length - 1];
     return `<li><button type="button" class="sub-item" data-open="${esc(s.id)}" data-review="${forReview}">
-        <span class="sub-title"><b>${esc(s.site_id)}</b>${s.moved ? ' <span class="tag">moved</span>' : ""}
+        <span class="sub-title"><b>${s.placed ? "New site" : esc(s.site_id)}</b>${s.placed ? ' <span class="tag">placed</span>' : ""}
           <span class="status status-${esc(s.status)}">${STATUS_LABEL[s.status] ?? esc(s.status)}</span></span>
         <span class="muted small">${s.polygons} polygons · NAIP ${s.naip_year} · ${fmtDate(s.created)}${forReview ? ` · ${esc(s.annotator_name)}` : ""}</span>
         ${last?.comment && !forReview ? `<span class="sub-comment">“${esc(last.comment)}”</span>` : ""}
@@ -215,12 +215,12 @@ export function setupReview(host: ReviewHost, root: HTMLElement) {
     const counts = Object.values(o.marks).reduce((a, k) => ((a[k.verdict] = (a[k.verdict] ?? 0) + 1), a), {} as Record<string, number>);
     root.innerHTML = `${demoNote()}
       <button type="button" class="contrib-link back" data-act="back">← All submissions</button>
-      <h2>${esc(m.site_id)}${m.moved ? ' <span class="tag">moved</span>' : ""}</h2>
+      <h2>${m.placed ? "New site" : esc(m.site_id)}${m.placed ? ' <span class="tag">placed</span>' : ""}</h2>
       <dl class="sub-meta">
         <dt>Submission</dt><dd>${esc(o.detail.id)}</dd>
         <dt>Annotator</dt><dd>${esc(o.detail.annotator_name)}</dd>
         <dt>Polygons</dt><dd>${o.annotation.features.length} · NAIP ${m.naip_year}</dd>
-        <dt>Square</dt><dd>${m.moved ? `moved ${Math.round(Math.hypot(...m.offset_m))} m from ${esc(m.site_id)}` : "original site position"}</dd>
+        <dt>Square</dt><dd>${m.placed ? `${m.size_m[0]} × ${m.size_m[1]} m at ${m.center[1].toFixed(4)}, ${m.center[0].toFixed(4)}` : `TreeFinder site ${esc(m.site_id)}`}</dd>
         <dt>Status</dt><dd><span class="status status-${esc(o.detail.status)}">${STATUS_LABEL[o.detail.status] ?? esc(o.detail.status)}</span></dd>
       </dl>
       <ul class="answer-legend" aria-label="Outline colors">

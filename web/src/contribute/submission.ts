@@ -10,9 +10,11 @@ export interface SiteMeta {
   schema: 1;
   kind: "site";
   submission_id: string;
+  /** The TreeFinder site whose square was used, or "NEW" for a square the contributor placed. */
   site_id: string;
-  moved: boolean;
-  offset_m: [number, number];
+  placed: boolean;
+  /** Square center (lon, lat). */
+  center: [number, number];
   size_m: [number, number];
   naip_year: number;
   annotator: string;
@@ -59,8 +61,8 @@ export function buildSite(o: {
   id: string;
   site_id: string;
   frame: GeoJSON.Polygon;
-  moved: boolean;
-  offset_m: [number, number];
+  placed: boolean;
+  center: [number, number];
   size_m: [number, number];
   naip_year: number;
   annotator: string;
@@ -70,8 +72,8 @@ export function buildSite(o: {
     kind: "site",
     submission_id: o.id,
     site_id: o.site_id,
-    moved: o.moved,
-    offset_m: [Math.round(o.offset_m[0]), Math.round(o.offset_m[1])],
+    placed: o.placed,
+    center: [+o.center[0].toFixed(6), +o.center[1].toFixed(6)],
     size_m: [Math.round(o.size_m[0]), Math.round(o.size_m[1])],
     naip_year: o.naip_year,
     annotator: o.annotator,
@@ -82,7 +84,7 @@ export function buildSite(o: {
     treefinder: meta,
     features: [{
       type: "Feature",
-      properties: { submission_id: o.id, site_id: o.site_id, moved: o.moved, naip_year: o.naip_year, offset_m: meta.offset_m },
+      properties: { submission_id: o.id, site_id: o.site_id, placed: o.placed, naip_year: o.naip_year, size_m: meta.size_m },
       geometry: o.frame,
     }],
   };
@@ -203,8 +205,8 @@ export function readSubmission(files: { name: string; text: string }[], knownSit
   site ??= {
     type: "FeatureCollection",
     treefinder: {
-      schema: 1, kind: "site", submission_id: m.submission_id, site_id: m.site_id, moved: false, offset_m: [0, 0],
-      size_m: [0, 0], naip_year: m.naip_year, annotator: m.annotator, created_at: m.exported_at,
+      schema: 1, kind: "site", submission_id: m.submission_id, site_id: m.site_id, placed: m.site_id === "NEW",
+      center: [0, 0], size_m: [0, 0], naip_year: m.naip_year, annotator: m.annotator, created_at: m.exported_at,
     },
     features: [{ type: "Feature", properties: { submission_id: m.submission_id, site_id: m.site_id }, geometry: m.site_frame }],
   };

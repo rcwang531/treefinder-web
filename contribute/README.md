@@ -4,7 +4,8 @@ The map has two tabs for approved contributors, next to **Sites**:
 
 - **Contribute**
   - **Validate**: click a label polygon and answer *Is this a dead tree?* (Yes / No / Not sure).
-  - **Draw**: pick a site. Its square can be **moved anywhere in the contiguous US**; only its position changes, not its size or orientation.
+  - **Draw**: zoom in to level 16 or closer and **place a site square** by clicking the map anywhere in the contiguous US.
+    It is north-aligned and 200, 300 (default) or 500 m on a side. You can also use the square of a selected TreeFinder site.
     Outline the dead trees inside it, then **download** the *site file* and the *annotation file* and/or **submit** them for review.
 - **Review**
   - Reviewers open each submission on the map at its NAIP year.
@@ -19,12 +20,12 @@ everything stays in the browser.
 
 ## Files
 
-Every submission has an ID like `CO_001-jdoe-20261023-1530` (site, contributor, UTC time) and up to three kinds of GeoJSON files.
+Every submission has an ID like `CO_001-jdoe-20261023-1530` or `NEW-jdoe-20261023-1530` (site or NEW, contributor, UTC time) and up to three kinds of GeoJSON files.
 Each is a FeatureCollection with a top-level `treefinder` block.
 
 | File | `treefinder.kind` | Contents |
 |---|---|---|
-| `…_site.geojson` | `site` | The square that was annotated: `site_id` (the TreeFinder site it started from), `moved`, `offset_m` (meters east/north), `size_m` and `naip_year` |
+| `…_site.geojson` | `site` | The square that was annotated: `site_id` (a TreeFinder site, or `NEW` for a placed square), `placed`, `center` (lon, lat), `size_m` and `naip_year` |
 | `…_annotation.geojson` | `annotation` | The dead-tree polygons (`id`, `area_m2`, `naip_year`), plus a copy of the square in `site_frame` |
 | `…_review_<reviewer>.geojson` | `review` | The annotation's polygons with `review_verdict` and `review_comment`, any trees the reviewer added (`added_by_reviewer: true`), and the reviewer's `decision` and `comment` |
 
@@ -100,7 +101,7 @@ Set `active` to `FALSE` to pause an account. Changes take effect at the contribu
 ## Where things are recorded
 
 - **Validations**: one row per answer (time, email, site, polygon ID such as `CO_001-007`, answer, NAIP year, composite).
-- **Submissions**: one row per submission. It records the contributor, the site, whether the square moved, the polygon count, the status (`pending`, `accepted`, `needs_changes` or `rejected`) and the Drive folder.
+- **Submissions**: one row per submission. It records the contributor, the site (or `NEW`), whether the square was placed, the polygon count, the status (`pending`, `accepted`, `needs_changes` or `rejected`) and the Drive folder.
 - **Reviews**: one row per review (reviewer, decision, comment, file), together with the review file in the submission's folder.
 
 Limits: 2 MB per file and 2,000 polygons per submission, polygons only, and polygons must lie inside the square.

@@ -1,6 +1,5 @@
-// A site frame contributors can drag to a new location. Only its position changes: corners keep
-// their ground offsets (in meters) from the center, so size and orientation are preserved even
-// when it moves north or south.
+// The square a contributor annotates: either an existing TreeFinder site's extent, or a new
+// north-aligned square placed by clicking the map (only when zoomed in far enough to see trees).
 import type maplibregl from "maplibre-gl";
 
 const R = 6_371_008.8;
@@ -9,130 +8,113 @@ const FILL = "contrib-frame-fill";
 const LINE = "contrib-frame-line";
 const SRC = "contrib-frame";
 
-/** Where the frame may be placed: CONUS (matches the map's panning limit). */
+/** Placing a square needs at least this zoom (individual crowns are visible from here). */
+export const PLACE_MIN_ZOOM = 16;
+/** Side lengths offered for placed squares, in meters (300 m ≈ 500 × 500 NAIP pixels). */
+export const PLACE_SIZES = [200, 300, 500];
+export const PLACE_DEFAULT_SIZE = 300;
+/** Where squares may be placed: CONUS (matches the map's panning limit). */
 const LIMIT = { w: -125, s: 24.3, e: -66.9, n: 49.5 };
 
-export interface FrameState {
-  siteId: string;
-  /** Current center (lon, lat). */
-  center: [number, number];
-}
+export type FrameState =
+  | { kind: "site"; siteId: string }
+  | { kind: "placed"; center: [number, number]; size: number };
 
 export class SiteFrame {
-  private siteId = "";
-  private original: GeoJSON.Polygon | null = null;
-  private origin: [number, number] = [0, 0];
-  private offsets: [number, number][] = []; // corner offsets in meters from the original center
-  private center: [number, number] = [0, 0];
-  private movable = false;
-  private drag: { from: maplibregl.LngLat; center: [number, number] } | null = null;
+  private current: FrameState | null = null;
+  private geom: GeoJSON.Polygon | null = null;
 
-  constructor(private map: maplibregl.Map, private onChange: () => void) {
-    map.on("mousedown", FILL, (e) => this.startDrag(e));
-    map.on("touchstart", FILL, (e) => this.startDrag(e as unknown as maplibregl.MapMouseEvent));
-    map.on("mousemove", (e) => this.moveDrag(e));
-    map.on("touchmove", (e) => this.moveDrag(e as unknown as maplibregl.MapMouseEvent));
-    map.on("mouseup", () => this.endDrag());
-    map.on("touchend", () => this.endDrag());
-    map.on("mouseenter", FILL, () => this.movable && (map.getCanvas().style.cursor = "move"));
-    map.on("mouseleave", FILL, () => this.movable && (map.getCanvas().style.cursor = ""));
-  }
+  constructor(private map: maplibregl.Map) {}
 
-  /** Show the frame for `siteId`, optionally restored to a saved center. */
-  set(siteId: string, extent: GeoJSON.Polygon, center?: [number, number]) {
-    this.siteId = siteId;
-    this.original = extent;
-    const ring = extent.coordinates[0].slice(0, -1);
-    this.origin = [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length];
-    const cos = Math.cos(this.origin[1] * RAD);
-    this.offsets = ring.map(([x, y]) => [(x - this.origin[0]) * RAD * R * cos, (y - this.origin[1]) * RAD * R]);
-    this.center = center ?? this.origin;
+  /** Use an existing site's extent. */
+  useSite(siteId: string, extent: GeoJSON.Polygon) {
+    this.current = { kind: "site", siteId };
+    this.geom = extent;
     this.draw();
   }
 
-  get id() {
-    return this.siteId;
-  }
-  get moved() {
-    return Math.hypot(...this.offsetMeters()) > 0.5;
-  }
-  /** Shift from the original position, in meters east and north. */
-  offsetMeters(): [number, number] {
-    const lat = (this.center[1] + this.origin[1]) / 2;
-    return [
-      (this.center[0] - this.origin[0]) * RAD * R * Math.cos(lat * RAD),
-      (this.center[1] - this.origin[1]) * RAD * R,
+  /** Place a new square of `size` meters centered on `center`; false if outside CONUS. */
+  placeAt(center: [number, number], size: number): boolean {
+    const [lon, lat] = center;
+    if (lon < LIMIT.w || lon > LIMIT.e || lat < LIMIT.s || lat > LIMIT.n) return false;
+    const h = size / 2;
+    const dLon = h / (R * Math.cos(lat * RAD)) / RAD;
+    const dLat = h / R / RAD;
+    const r = (v: number) => +v.toFixed(7);
+    const ring = [
+      [r(lon - dLon), r(lat - dLat)], [r(lon + dLon), r(lat - dLat)],
+      [r(lon + dLon), r(lat + dLat)], [r(lon - dLon), r(lat + dLat)],
     ];
-  }
-  state(): FrameState {
-    return { siteId: this.siteId, center: this.center };
-  }
-  /** Width and height in meters (of the axis-aligned box around the corners). */
-  sizeMeters(): [number, number] {
-    const xs = this.offsets.map((o) => o[0]);
-    const ys = this.offsets.map((o) => o[1]);
-    return [Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)];
-  }
-
-  geometry(): GeoJSON.Polygon {
-    if (!this.moved && this.original) return this.original;
-    const cos = Math.cos(this.center[1] * RAD);
-    const ring = this.offsets.map(([dx, dy]) => [
-      +(this.center[0] + dx / (R * cos) / RAD).toFixed(7),
-      +(this.center[1] + dy / R / RAD).toFixed(7),
-    ]);
-    return { type: "Polygon", coordinates: [[...ring, ring[0]]] };
-  }
-
-  reset() {
-    this.center = this.origin;
+    this.current = { kind: "placed", center: [r(lon), r(lat)], size };
+    this.geom = { type: "Polygon", coordinates: [[...ring, ring[0]]] };
     this.draw();
-    this.onChange();
-  }
-  setMovable(on: boolean) {
-    this.movable = on;
-    if (this.map.getLayer(LINE)) this.map.setPaintProperty(LINE, "line-width", on ? 3 : 2);
-    if (this.map.getLayer(FILL)) this.map.setPaintProperty(FILL, "fill-opacity", on ? 0.12 : 0.04);
+    return true;
   }
 
+  /** Restore a saved state; `extentOf` looks up existing sites. */
+  restore(s: FrameState, extentOf: (site: string) => GeoJSON.Polygon | null) {
+    if (s.kind === "site") {
+      const e = extentOf(s.siteId);
+      if (e) this.useSite(s.siteId, e);
+    } else this.placeAt(s.center, s.size);
+  }
+
+  get state() {
+    return this.current;
+  }
+  get placed() {
+    return this.current?.kind === "placed";
+  }
+  /** Existing site ID, or "NEW" for a placed square. */
+  get siteId() {
+    return this.current?.kind === "site" ? this.current.siteId : "NEW";
+  }
+  geometry(): GeoJSON.Polygon | null {
+    return this.geom;
+  }
+  center(): [number, number] | null {
+    if (!this.geom) return null;
+    const ring = this.geom.coordinates[0].slice(0, -1);
+    return [ring.reduce((s, p) => s + p[0], 0) / ring.length, ring.reduce((s, p) => s + p[1], 0) / ring.length];
+  }
+  /** Width and height in meters of the box around the square. */
+  sizeMeters(): [number, number] {
+    if (!this.geom) return [0, 0];
+    const ring = this.geom.coordinates[0];
+    const xs = ring.map((p) => p[0]);
+    const ys = ring.map((p) => p[1]);
+    const lat = (Math.min(...ys) + Math.max(...ys)) / 2;
+    return [(Math.max(...xs) - Math.min(...xs)) * RAD * R * Math.cos(lat * RAD), (Math.max(...ys) - Math.min(...ys)) * RAD * R];
+  }
+
+  clear() {
+    this.current = null;
+    this.geom = null;
+    this.hide();
+  }
   hide() {
-    this.endDrag();
     for (const id of [LINE, FILL]) if (this.map.getLayer(id)) this.map.removeLayer(id);
     if (this.map.getSource(SRC)) this.map.removeSource(SRC);
   }
+  /** Re-add the layers (e.g. after the tab was hidden). */
+  show() {
+    if (this.geom) this.draw();
+  }
 
   private draw() {
-    const data: GeoJSON.Feature = { type: "Feature", properties: {}, geometry: this.geometry() };
+    const data: GeoJSON.Feature = { type: "Feature", properties: {}, geometry: this.geom! };
     const src = this.map.getSource(SRC) as maplibregl.GeoJSONSource | undefined;
     if (src) {
       src.setData(data);
       return;
     }
     this.map.addSource(SRC, { type: "geojson", data });
-    this.map.addLayer({ id: FILL, type: "fill", source: SRC, paint: { "fill-color": "#b388ff", "fill-opacity": 0.04 } });
+    this.map.addLayer({ id: FILL, type: "fill", source: SRC, paint: { "fill-color": "#b388ff", "fill-opacity": 0.05 } });
     this.map.addLayer({
       id: LINE,
       type: "line",
       source: SRC,
-      paint: { "line-color": "#b388ff", "line-width": 2, "line-dasharray": [2, 1.5] },
+      paint: { "line-color": "#b388ff", "line-width": 2.5, "line-dasharray": [2, 1.5] },
     });
-  }
-
-  private startDrag(e: maplibregl.MapMouseEvent) {
-    if (!this.movable) return;
-    e.preventDefault(); // stop the map from panning while the frame moves
-    this.drag = { from: e.lngLat, center: this.center };
-  }
-  private moveDrag(e: maplibregl.MapMouseEvent) {
-    if (!this.drag) return;
-    const lon = this.drag.center[0] + (e.lngLat.lng - this.drag.from.lng);
-    const lat = this.drag.center[1] + (e.lngLat.lat - this.drag.from.lat);
-    this.center = [Math.min(LIMIT.e, Math.max(LIMIT.w, lon)), Math.min(LIMIT.n, Math.max(LIMIT.s, lat))];
-    this.draw();
-  }
-  private endDrag() {
-    if (!this.drag) return;
-    this.drag = null;
-    this.onChange();
   }
 }

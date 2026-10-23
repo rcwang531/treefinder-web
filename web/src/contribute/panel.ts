@@ -4,7 +4,7 @@ import maplibregl from "maplibre-gl";
 import { TerraDraw, TerraDrawPolygonMode, TerraDrawSelectMode, ValidateNotSelfIntersecting } from "terra-draw";
 import { TerraDrawMapLibreGLAdapter } from "terra-draw-maplibre-gl-adapter";
 import { backend, type Answer, type Role } from "./backend";
-import { SiteFrame, type FrameState } from "./frame";
+import { PLACE_DEFAULT_SIZE, PLACE_MIN_ZOOM, PLACE_SIZES, SiteFrame, type FrameState } from "./frame";
 import { polygonInside } from "./geo";
 import { demoNote, esc, mountSignIn, store, userBlock, wireSignOut } from "./session";
 import { buildAnnotation, buildSite, download, fileName, newSubmissionId, readSubmission } from "./submission";
@@ -31,7 +31,7 @@ const ANSWERS: { value: Answer; label: string; key: string }[] = [
   { value: "not_dead", label: "No", key: "n" },
   { value: "unsure", label: "Not sure", key: "u" },
 ];
-const DRAFT_PREFIX = "treefinder.draft2";
+const DRAFT_PREFIX = "treefinder.draft3";
 
 interface Draft {
   frame: FrameState;
@@ -69,7 +69,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
         <p>Approved contributors can check existing labels and draw new ones.</p>
         <ul class="contrib-roles">
           <li><b>Validate</b>: click a labeled polygon and answer one question: is this tree dead?</li>
-          <li><b>Draw</b>: place a site square (move it anywhere in the US if you like), outline the dead trees in it and submit them. A reviewer checks every submission.</li>
+          <li><b>Draw</b>: zoom in, place a site square anywhere in the US (or use a TreeFinder site's square), outline the dead trees in it and submit them. A reviewer checks every submission.</li>
         </ul>
         <div class="signin-slot"></div>
         <p class="muted small">No account yet? Sign in and an access request is recorded for the team, or email
@@ -202,17 +202,15 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
 
   // ---------- drawing ----------
   let draw: TerraDraw | null = null;
-  let drawSite: string | null = null;
-  let moving = false;
-  const frame = new SiteFrame(map, () => {
-    saveDraft();
-    renderDraw();
-  });
-  const draftKey = (site: string) => `${DRAFT_PREFIX}.${store.user?.email ?? "anon"}.${site}`;
+  let placing = false;
+  let size = PLACE_DEFAULT_SIZE;
+  const frame = new SiteFrame(map);
+  const draftKey = () => `${DRAFT_PREFIX}.${store.user?.email ?? "anon"}`;
 
   function insideFrame(feature: { geometry: GeoJSON.Geometry }) {
-    if (feature.geometry.type !== "Polygon" || !drawSite) return { valid: false, reason: "Not a polygon" };
-    if (!polygonInside(feature.geometry, frame.geometry())) return { valid: false, reason: "Outside the site square" };
+    const sq = frame.geometry();
+    if (feature.geometry.type !== "Polygon" || !sq) return { valid: false, reason: "Not a polygon" };
+    if (!polygonInside(feature.geometry, sq)) return { valid: false, reason: "Outside the site square" };
     return ValidateNotSelfIntersecting(feature as never);
   }
 
@@ -253,65 +251,81 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
       .map((f) => f.geometry as GeoJSON.Polygon);
   }
   function saveDraft() {
-    if (!drawSite) return;
-    const d: Draft = { frame: frame.state(), polygons: polygons() };
+    if (!store.user || !frame.state) return;
+    const d: Draft = { frame: frame.state, polygons: polygons() };
     try {
-      localStorage.setItem(draftKey(drawSite), JSON.stringify(d));
+      localStorage.setItem(draftKey(), JSON.stringify(d));
     } catch {
       /* storage unavailable: the draft lasts for this page view */
     }
   }
-  function readDraft(site: string): Draft | null {
+  function readDraft(): Draft | null {
     try {
-      return JSON.parse(localStorage.getItem(draftKey(site)) ?? "null");
+      return JSON.parse(localStorage.getItem(draftKey()) ?? "null");
     } catch {
       return null;
     }
   }
 
+  /** Enter Draw mode: restore the saved square and polygons. */
   function startDrawing() {
-    const s = host.site();
-    if (!s) {
-      stopDrawing();
-      renderDraw();
-      return;
-    }
     const d = ensureDraw();
-    if (drawSite !== s.id) {
-      saveDraft();
-      d.clear();
-      drawSite = s.id;
-      const draft = readDraft(s.id);
-      frame.set(s.id, s.extent, draft?.frame.center);
-      if (draft?.polygons.length) {
-        d.addFeatures(
-          draft.polygons.map((geometry) => ({ id: crypto.randomUUID(), type: "Feature", geometry, properties: { mode: "polygon" } })),
-        );
-      }
-      // Label on the most recent imagery available here (unknown once the square has moved away).
-      const latest = host.latestYear(s.id);
-      if (!frame.moved && latest && latest !== host.year()) host.setYear(latest);
+    d.clear();
+    const draft = readDraft();
+    if (draft?.frame) frame.restore(draft.frame, host.extentOf);
+    if (draft?.polygons.length) {
+      d.addFeatures(draft.polygons.map((geometry) => ({ id: crypto.randomUUID(), type: "Feature", geometry, properties: { mode: "polygon" } })));
     }
+    frame.show();
     host.setDrawing(true);
-    if (!moving) d.setMode("polygon");
+    setTool(frame.geometry() && !placing ? "polygon" : "static");
     renderDraw();
   }
   function stopDrawing() {
-    if (draw) {
-      saveDraft();
-      draw.setMode("static");
-    }
-    setMoving(false);
+    if (!draw) return;
+    saveDraft();
+    draw.setMode("static");
+    draw.clear();
     frame.hide();
-    drawSite = null;
-    draw?.clear();
+    placing = false;
     host.setDrawing(false);
   }
-  function setMoving(on: boolean) {
-    moving = on;
-    frame.setMovable(on);
-    if (on) draw?.setMode("static");
-    else if (active && mode === "draw" && drawSite) draw?.setMode("polygon");
+  function setTool(t: "polygon" | "select" | "static") {
+    ensureDraw().setMode(t);
+  }
+
+  // Placing a square: the next map click (when zoomed in far enough) puts it there.
+  map.on("click", (e) => {
+    if (!active || mode !== "draw" || !placing) return;
+    if (map.getZoom() < PLACE_MIN_ZOOM) {
+      say(`Zoom in to level ${PLACE_MIN_ZOOM} or closer to place a square (now ${map.getZoom().toFixed(1)}).`);
+      return;
+    }
+    if (!frame.placeAt([e.lngLat.lng, e.lngLat.lat], size)) {
+      say("Squares can only be placed in the contiguous US.");
+      return;
+    }
+    placing = false;
+    saveDraft();
+    setTool("polygon");
+    say(`Square placed (${size} × ${size} m). Now outline the dead trees inside it.`);
+    renderDraw();
+  });
+  map.on("zoomend", () => placing && active && updatePlaceHint());
+
+  function placeHint(): string {
+    const n = polygons().length;
+    if (placing) {
+      return map.getZoom() < PLACE_MIN_ZOOM
+        ? `Zoom in to level ${PLACE_MIN_ZOOM} or closer (now ${map.getZoom().toFixed(1)}), then click the map where the square should go.`
+        : "Click the map where the square should go.";
+    }
+    if (!frame.geometry()) return "Place a square anywhere in the US, or use a TreeFinder site's square.";
+    return n ? "The square is locked while it contains polygons (Clear all to unlock)." : "Not quite right? Place it again before drawing.";
+  }
+  function updatePlaceHint() {
+    const el = root.querySelector("#place-hint");
+    if (el) el.textContent = placeHint();
   }
 
   function updateDrawCount() {
@@ -319,35 +333,35 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     const el = root.querySelector("#draw-count");
     if (el) el.textContent = `${n} polygon${n === 1 ? "" : "s"} drawn · draft saved in this browser`;
     root.querySelectorAll<HTMLButtonElement>("[data-needs-polys]").forEach((b) => (b.disabled = !n));
-    const mv = root.querySelector<HTMLButtonElement>("[data-act=move]");
-    if (mv) mv.disabled = n > 0 && !moving;
+    root.querySelectorAll<HTMLElement>("[data-locks]").forEach((b) => ((b as HTMLButtonElement).disabled = n > 0));
+    updatePlaceHint();
   }
 
   function renderDraw() {
     const body = root.querySelector("#contrib-body");
     if (!body || mode !== "draw") return;
-    const s = host.site();
-    if (!s || !drawSite) {
-      body.innerHTML = `<p><b>Select a site first</b> (in the Sites tab, or by clicking one on the map). Its square is where you'll draw; you can move it afterwards.</p>`;
-      return;
-    }
-    const [east, north] = frame.offsetMeters().map(Math.round);
-    const where = frame.moved
-      ? `moved ${Math.abs(east)} m ${east >= 0 ? "east" : "west"}, ${Math.abs(north)} m ${north >= 0 ? "north" : "south"}`
-      : "original position";
-    const tool = moving ? "move" : draw?.getMode() ?? "static";
+    const sel = host.site();
+    const sq = frame.geometry();
+    const c = frame.center();
+    const label = !sq
+      ? "No square yet"
+      : frame.placed
+        ? `New site at ${c![1].toFixed(4)}, ${c![0].toFixed(4)}`
+        : `Site <b>${esc(frame.siteId)}</b>`;
+    const tool = placing ? "place" : draw?.getMode() ?? "static";
     body.innerHTML = `
-      <p class="draw-site">Site <b>${esc(s.id)}</b> · NAIP ${host.year()}<br><span class="muted small">Square: ${where}</span></p>
+      <p class="draw-site">${label}${sq ? ` · NAIP ${host.year()}` : ""}</p>
+      <h3>1. Site square</h3>
       <div class="draw-tools" role="toolbar" aria-label="Site square">
-        <button type="button" data-act="move" aria-pressed="${moving}">${moving ? "Done moving" : "Move site"}</button>
-        <button type="button" data-act="reset" ${frame.moved ? "" : "disabled"}>Reset position</button>
+        <button type="button" data-act="place" data-locks aria-pressed="${placing}">${placing ? "Cancel placing" : sq ? "Place again" : "Place a square"}</button>
+        <label class="size-pick">Size <select data-size data-locks>${PLACE_SIZES.map((m) => `<option value="${m}" ${m === size ? "selected" : ""}>${m} m</option>`).join("")}</select></label>
       </div>
-      <p class="muted small">${moving
-        ? "Drag the dashed square to a new spot. Its size and orientation stay the same."
-        : "Move the square before drawing; it's locked while it contains polygons."}</p>
+      ${sel && !(sq && !frame.placed && frame.siteId === sel.id) ? `<button type="button" class="contrib-link" data-act="use-site" data-locks>Use site ${esc(sel.id)}'s square instead</button>` : ""}
+      <p id="place-hint" class="muted small">${esc(placeHint())}</p>
+      <h3>2. Dead trees</h3>
       <div class="draw-tools" role="toolbar" aria-label="Drawing tools">
-        <button type="button" data-tool="polygon" aria-pressed="${tool === "polygon"}" ${moving ? "disabled" : ""}>Draw</button>
-        <button type="button" data-tool="select" aria-pressed="${tool === "select"}" ${moving ? "disabled" : ""}>Edit</button>
+        <button type="button" data-tool="polygon" aria-pressed="${tool === "polygon"}" ${sq && !placing ? "" : "disabled"}>Draw</button>
+        <button type="button" data-tool="select" aria-pressed="${tool === "select"}" ${sq && !placing ? "" : "disabled"}>Edit</button>
         <button type="button" data-act="clear" data-needs-polys>Clear all</button>
       </div>
       <p class="muted small">Click to add corners; click the first corner or press <kbd>Enter</kbd> to finish, <kbd>Esc</kbd> to cancel.
@@ -361,19 +375,39 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
         <input id="upload-file" type="file" multiple accept=".geojson,.json,application/geo+json,application/json" hidden />
       </div>
       <p class="muted small">Submitted work and reviewer feedback are in the <button type="button" class="contrib-link" data-act="mine">Review tab</button>.</p>`;
-    body.querySelector<HTMLButtonElement>("[data-act=move]")!.onclick = () => {
-      setMoving(!moving);
+    body.querySelector<HTMLButtonElement>("[data-act=place]")!.onclick = () => {
+      placing = !placing;
+      setTool(placing || !frame.geometry() ? "static" : "polygon");
+      say("");
       renderDraw();
     };
-    body.querySelector<HTMLButtonElement>("[data-act=reset]")!.onclick = () => frame.reset();
+    body.querySelector<HTMLSelectElement>("[data-size]")!.onchange = (e) => {
+      size = Number((e.target as HTMLSelectElement).value);
+      // Resize an empty placed square in place.
+      const cc = frame.center();
+      if (frame.placed && cc && !polygons().length) {
+        frame.placeAt(cc, size);
+        saveDraft();
+        renderDraw();
+      }
+    };
+    body.querySelector<HTMLButtonElement>("[data-act=use-site]")?.addEventListener("click", () => {
+      frame.useSite(sel!.id, sel!.extent);
+      placing = false;
+      const latest = host.latestYear(sel!.id);
+      if (latest && latest !== host.year()) host.setYear(latest);
+      saveDraft();
+      setTool("polygon");
+      renderDraw();
+    });
     body.querySelectorAll<HTMLButtonElement>("[data-tool]").forEach((b) => {
       b.onclick = () => {
-        ensureDraw().setMode(b.dataset.tool!);
+        setTool(b.dataset.tool as "polygon" | "select");
         body.querySelectorAll("[data-tool]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
       };
     });
     body.querySelector<HTMLButtonElement>("[data-act=clear]")!.onclick = () => {
-      if (confirm(`Remove all ${polygons().length} polygons drawn at ${s.id}?`)) {
+      if (confirm(`Remove all ${polygons().length} polygons?`)) {
         draw?.clear();
         saveDraft();
         updateDrawCount();
@@ -405,13 +439,14 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
 
   /** The current square and polygons as a site file + annotation file pair. */
   function current() {
-    const id = newSubmissionId(drawSite!, store.user!.email);
+    const siteId = frame.siteId;
+    const id = newSubmissionId(siteId, store.user!.email);
     const site = buildSite({
       id,
-      site_id: drawSite!,
-      frame: frame.geometry(),
-      moved: frame.moved,
-      offset_m: frame.offsetMeters(),
+      site_id: siteId,
+      frame: frame.geometry()!,
+      placed: frame.placed,
+      center: frame.center()!,
       size_m: frame.sizeMeters(),
       naip_year: host.year(),
       annotator: store.user!.email,
@@ -428,7 +463,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
   async function uploadFiles(files: File[]) {
     try {
       const texts = await Promise.all(files.map(async (f) => ({ name: f.name, text: await f.text() })));
-      const { site, annotation } = readSubmission(texts, (id) => Boolean(host.extentOf(id)));
+      const { site, annotation } = readSubmission(texts, (id) => id === "NEW" || Boolean(host.extentOf(id)));
       submit(site, annotation);
     } catch (e) {
       say(`Can't upload: ${(e as Error).message}`);
@@ -467,7 +502,7 @@ export function setupContribute(host: ContributeHost, root: HTMLElement) {
     /** Called by main.ts when the selected site or NAIP year changes. */
     refresh() {
       if (!active) return;
-      if (mode === "draw") startDrawing();
+      if (mode === "draw") renderDraw();
       else render();
     },
     /** Re-apply answer colors after the label layers were rebuilt (tab switch). */

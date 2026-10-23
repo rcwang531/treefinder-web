@@ -31,8 +31,9 @@ export interface ReviewSummary {
 
 export interface SubmissionSummary {
   id: string;
+  /** TreeFinder site ID, or "NEW" for a square the contributor placed. */
   site_id: string;
-  moved: boolean;
+  placed: boolean;
   annotator: string;
   annotator_name: string;
   created: string;
@@ -172,7 +173,7 @@ const demo: Backend = {
     const detail: SubmissionDetail = {
       id: s.id,
       site_id: s.site_id,
-      moved: Boolean(meta.moved),
+      placed: Boolean(meta.placed),
       annotator: DEMO_USER.email,
       annotator_name: DEMO_USER.name,
       created: new Date().toISOString(),
