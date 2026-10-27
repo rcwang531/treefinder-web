@@ -1,41 +1,11 @@
 [
  {
-  "file": "CO_001_2023_close.jpg",
-  "site": "CO_001",
-  "year": 2023,
-  "state": "Colorado",
-  "polygons": 61,
-  "area_m2": 1726,
-  "width": 960,
-  "height": 600
- },
- {
   "file": "CO_050_2023_close.jpg",
   "site": "CO_050",
   "year": 2023,
   "state": "Colorado",
   "polygons": 80,
   "area_m2": 1611,
-  "width": 960,
-  "height": 600
- },
- {
-  "file": "NV_005_2022_close.jpg",
-  "site": "NV_005",
-  "year": 2022,
-  "state": "Nevada",
-  "polygons": 145,
-  "area_m2": 3177,
-  "width": 960,
-  "height": 600
- },
- {
-  "file": "NY_008_2022_close.jpg",
-  "site": "NY_008",
-  "year": 2022,
-  "state": "New York",
-  "polygons": 56,
-  "area_m2": 9465,
   "width": 960,
   "height": 600
  },
@@ -56,6 +26,196 @@
   "state": "Kentucky",
   "polygons": 71,
   "area_m2": 9456,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "AZ_009_2023_close.jpg",
+  "site": "AZ_009",
+  "year": 2023,
+  "state": "Arizona",
+  "polygons": 74,
+  "area_m2": 1465,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CA_003_2022_close.jpg",
+  "site": "CA_003",
+  "year": 2022,
+  "state": "California",
+  "polygons": 39,
+  "area_m2": 932,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CA_008_2022_close.jpg",
+  "site": "CA_008",
+  "year": 2022,
+  "state": "California",
+  "polygons": 61,
+  "area_m2": 8896,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CT_007_2023_close.jpg",
+  "site": "CT_007",
+  "year": 2023,
+  "state": "Connecticut",
+  "polygons": 82,
+  "area_m2": 7341,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CT_008_2023_close.jpg",
+  "site": "CT_008",
+  "year": 2023,
+  "state": "Connecticut",
+  "polygons": 41,
+  "area_m2": 2827,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "CT_010_2023_close.jpg",
+  "site": "CT_010",
+  "year": 2023,
+  "state": "Connecticut",
+  "polygons": 51,
+  "area_m2": 3321,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "FL_007_2023_close.jpg",
+  "site": "FL_007",
+  "year": 2023,
+  "state": "Florida",
+  "polygons": 73,
+  "area_m2": 4974,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "FL_012_2023_close.jpg",
+  "site": "FL_012",
+  "year": 2023,
+  "state": "Florida",
+  "polygons": 43,
+  "area_m2": 2395,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "FL_019_2023_close.jpg",
+  "site": "FL_019",
+  "year": 2023,
+  "state": "Florida",
+  "polygons": 60,
+  "area_m2": 4097,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "MI_025_2022_close.jpg",
+  "site": "MI_025",
+  "year": 2022,
+  "state": "Michigan",
+  "polygons": 45,
+  "area_m2": 3014,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "NJ_008_2023_close.jpg",
+  "site": "NJ_008",
+  "year": 2023,
+  "state": "New Jersey",
+  "polygons": 70,
+  "area_m2": 5536,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "OK_015_2023_close.jpg",
+  "site": "OK_015",
+  "year": 2023,
+  "state": "Oklahoma",
+  "polygons": 53,
+  "area_m2": 6880,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "PA_025_2022_close.jpg",
+  "site": "PA_025",
+  "year": 2022,
+  "state": "Pennsylvania",
+  "polygons": 53,
+  "area_m2": 4491,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "RI_005_2023_close.jpg",
+  "site": "RI_005",
+  "year": 2023,
+  "state": "Rhode Island",
+  "polygons": 40,
+  "area_m2": 3177,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "WA_001_2023_close.jpg",
+  "site": "WA_001",
+  "year": 2023,
+  "state": "Washington",
+  "polygons": 321,
+  "area_m2": 12523,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "WA_002_2023_close.jpg",
+  "site": "WA_002",
+  "year": 2023,
+  "state": "Washington",
+  "polygons": 93,
+  "area_m2": 3539,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "WA_003_2023_close.jpg",
+  "site": "WA_003",
+  "year": 2023,
+  "state": "Washington",
+  "polygons": 176,
+  "area_m2": 5963,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "WI_009_2022_close.jpg",
+  "site": "WI_009",
+  "year": 2022,
+  "state": "Wisconsin",
+  "polygons": 40,
+  "area_m2": 1499,
+  "width": 960,
+  "height": 600
+ },
+ {
+  "file": "WI_024_2022_close.jpg",
+  "site": "WI_024",
+  "year": 2022,
+  "state": "Wisconsin",
+  "polygons": 38,
+  "area_m2": 2945,
   "width": 960,
   "height": 600
  }
