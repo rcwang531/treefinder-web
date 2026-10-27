@@ -32,7 +32,8 @@ kbd {
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
-.topbar h1 { font-size: 16px; margin: 0; white-space: nowrap; }
+.topbar h1 { display: flex; align-items: center; gap: 8px; font-size: 16px; margin: 0; white-space: nowrap; }
+.logo-link { display: block; border-radius: 6px; } /* the logo goes back to the front page; the title resets the map */
 .title-btn {
   border: 0;
   background: none;
@@ -422,6 +423,6 @@ body[data-palette="cvd"] .sw-answer[data-a="unsure"] { border-color: #bbbbbb; }
   .notice { max-width: calc(100% - 32px); }
 }
 @media (max-width: 480px) {
-  .title-text { display: none; } /* the logo alone stays as the home button */
+  .title-btn { display: none; } /* the logo alone stays, as the link to the front page */
   .home-link { display: none; } /* keeps room for the label-set tab on phones */
 }
