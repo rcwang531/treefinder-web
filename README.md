@@ -85,6 +85,7 @@ URL hash state: `#map=z/lat/lon&y=<year>&t=<labelset>&s=<site ID>&about=1`. Keys
   1. Copy the ones you like into `web/public/assets/gallery/`, keeping the `<SITE>_<YEAR>.jpg` names, and delete the ones you don't want.
   2. Optionally, list the file names in `web/public/assets/gallery/order.txt` to set the order.
   3. Run `python3 web/scripts/make_gallery.py`. It resizes the images and writes `gallery.json` with each site's state, polygon count and dead-tree area.
+  4. The same images are the front-page slideshow. The script cuts each 1920×1080 background (`gallery/hero/`) from the full-size file of the same name in `assets/gallery_candidates/`, so keep the originals there. The first slide is hard-coded in `web/index.html`; update it if the first gallery image changes.
 - **Contributors.** Add people to `web/public/data/contributors.json`:
   `{"name": "Jane Doe", "affiliation": "University of Maryland", "roles": ["labeling", "validation"]}`.
   The front page lists them in the Contributors section, or shows an invitation while the list is empty.

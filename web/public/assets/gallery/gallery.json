@@ -7,7 +7,8 @@
   "polygons": 80,
   "area_m2": 1611,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CO_050_2023_close.jpg"
  },
  {
   "file": "UT_006_2021_close.jpg",
@@ -17,7 +18,8 @@
   "polygons": 114,
   "area_m2": 2275,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/UT_006_2021_close.jpg"
  },
  {
   "file": "KY_015_2022_close.jpg",
@@ -27,7 +29,8 @@
   "polygons": 71,
   "area_m2": 9456,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/KY_015_2022_close.jpg"
  },
  {
   "file": "AZ_009_2023_close.jpg",
@@ -37,7 +40,8 @@
   "polygons": 74,
   "area_m2": 1465,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/AZ_009_2023_close.jpg"
  },
  {
   "file": "CA_003_2022_close.jpg",
@@ -47,7 +51,8 @@
   "polygons": 39,
   "area_m2": 932,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CA_003_2022_close.jpg"
  },
  {
   "file": "CA_008_2022_close.jpg",
@@ -57,7 +62,8 @@
   "polygons": 61,
   "area_m2": 8896,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CA_008_2022_close.jpg"
  },
  {
   "file": "CT_007_2023_close.jpg",
@@ -67,7 +73,8 @@
   "polygons": 82,
   "area_m2": 7341,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CT_007_2023_close.jpg"
  },
  {
   "file": "CT_008_2023_close.jpg",
@@ -77,7 +84,8 @@
   "polygons": 41,
   "area_m2": 2827,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CT_008_2023_close.jpg"
  },
  {
   "file": "CT_010_2023_close.jpg",
@@ -87,7 +95,8 @@
   "polygons": 51,
   "area_m2": 3321,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/CT_010_2023_close.jpg"
  },
  {
   "file": "FL_007_2023_close.jpg",
@@ -97,7 +106,8 @@
   "polygons": 73,
   "area_m2": 4974,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/FL_007_2023_close.jpg"
  },
  {
   "file": "FL_012_2023_close.jpg",
@@ -107,7 +117,8 @@
   "polygons": 43,
   "area_m2": 2395,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/FL_012_2023_close.jpg"
  },
  {
   "file": "FL_019_2023_close.jpg",
@@ -117,7 +128,8 @@
   "polygons": 60,
   "area_m2": 4097,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/FL_019_2023_close.jpg"
  },
  {
   "file": "MI_025_2022_close.jpg",
@@ -127,7 +139,8 @@
   "polygons": 45,
   "area_m2": 3014,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/MI_025_2022_close.jpg"
  },
  {
   "file": "NJ_008_2023_close.jpg",
@@ -137,7 +150,8 @@
   "polygons": 70,
   "area_m2": 5536,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/NJ_008_2023_close.jpg"
  },
  {
   "file": "OK_015_2023_close.jpg",
@@ -147,7 +161,8 @@
   "polygons": 53,
   "area_m2": 6880,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/OK_015_2023_close.jpg"
  },
  {
   "file": "PA_025_2022_close.jpg",
@@ -157,7 +172,8 @@
   "polygons": 53,
   "area_m2": 4491,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/PA_025_2022_close.jpg"
  },
  {
   "file": "RI_005_2023_close.jpg",
@@ -167,7 +183,8 @@
   "polygons": 40,
   "area_m2": 3177,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/RI_005_2023_close.jpg"
  },
  {
   "file": "WA_001_2023_close.jpg",
@@ -177,7 +194,8 @@
   "polygons": 321,
   "area_m2": 12523,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/WA_001_2023_close.jpg"
  },
  {
   "file": "WA_002_2023_close.jpg",
@@ -187,7 +205,8 @@
   "polygons": 93,
   "area_m2": 3539,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/WA_002_2023_close.jpg"
  },
  {
   "file": "WA_003_2023_close.jpg",
@@ -197,7 +216,8 @@
   "polygons": 176,
   "area_m2": 5963,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/WA_003_2023_close.jpg"
  },
  {
   "file": "WI_009_2022_close.jpg",
@@ -207,7 +227,8 @@
   "polygons": 40,
   "area_m2": 1499,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/WI_009_2022_close.jpg"
  },
  {
   "file": "WI_024_2022_close.jpg",
@@ -217,6 +238,7 @@
   "polygons": 38,
   "area_m2": 2945,
   "width": 960,
-  "height": 600
+  "height": 600,
+  "hero": "hero/WI_024_2022_close.jpg"
  }
 ]

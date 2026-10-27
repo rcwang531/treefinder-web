@@ -9,32 +9,62 @@ if (/(^|[#&])(s|map|y|t|about)=/.test(location.hash)) {
 
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector<T>(sel)!;
 
-// ---- hero background: a slow cross-fade between labeled sites, pausable (WCAG 2.2.2) ----
-const slides = [...document.querySelectorAll<HTMLImageElement>(".hero-bg img")];
+// ---- hero background: a slow cross-fade through the gallery images, pausable (WCAG 2.2.2) ----
+// The first slide is in the HTML; addSlides() appends the rest once gallery.json has loaded.
+const heroBg = $(".hero-bg");
+const slides = [...heroBg.querySelectorAll<HTMLImageElement>("img")];
 const caption = $("#hero-caption");
 const pause = $<HTMLButtonElement>("#hero-pause");
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let current = 0;
 let timer = 0;
 
+const playing = () => pause.getAttribute("aria-pressed") !== "true";
+// Start fetching a slide before it is due, so the cross-fade never waits on the network.
+const preload = (img: HTMLImageElement) => {
+  if (img.dataset.src && !img.getAttribute("src")) img.src = img.dataset.src;
+};
+
 function show(i: number) {
   const img = slides[i];
-  if (img.dataset.src && !img.src) img.src = img.dataset.src;
+  preload(img);
   const swap = () => {
+    const at = slides.indexOf(img);
+    if (!playing() || at < 0 || at === current) return; // paused while the image was still loading
     slides[current].classList.remove("active");
     img.classList.add("active");
     caption.textContent = img.dataset.caption ?? "";
-    current = i;
+    current = at;
+    preload(slides[(at + 1) % slides.length]);
   };
   if (img.complete && img.naturalWidth) swap();
-  else img.addEventListener("load", swap, { once: true });
+  else if (img.complete) drop(img); // already failed while preloading
+  else {
+    img.addEventListener("load", swap, { once: true });
+    // a slide that fails to load is dropped, and the next tick moves on to the one after it
+    img.addEventListener("error", () => drop(img), { once: true });
+  }
+}
+function drop(img: HTMLImageElement) {
+  const at = slides.indexOf(img);
+  if (at < 0) return;
+  slides.splice(at, 1);
+  img.remove();
+  if (at < current) current--;
+  if (slides.length < 2) {
+    clearInterval(timer);
+    pause.hidden = true;
+  }
 }
 function play() {
   clearInterval(timer);
-  timer = window.setInterval(() => show((current + 1) % slides.length), 8000);
   pause.setAttribute("aria-pressed", "false");
   pause.setAttribute("aria-label", "Pause background slideshow");
   pause.textContent = "❚❚";
+  if (slides.length > 1) {
+    timer = window.setInterval(() => show((current + 1) % slides.length), 8000);
+    preload(slides[(current + 1) % slides.length]);
+  }
 }
 function stop() {
   clearInterval(timer);
@@ -42,15 +72,24 @@ function stop() {
   pause.setAttribute("aria-label", "Play background slideshow");
   pause.textContent = "▶";
 }
-pause.addEventListener("click", () => (pause.getAttribute("aria-pressed") === "true" ? play() : stop()));
-if (reduceMotion || slides.length < 2) stop();
-else {
-  // Fetch the next background after the page has settled.
-  addEventListener("load", () => {
-    const next = slides[1];
-    if (next.dataset.src) next.src = next.dataset.src;
-  });
-  play();
+pause.addEventListener("click", () => (playing() ? stop() : play()));
+pause.hidden = true; // shown once there is more than one slide
+if (reduceMotion) stop();
+
+function addSlides(items: { src: string; caption: string }[]) {
+  const shown = new Set(slides.map((s) => s.src)); // absolute URLs, so "/a.jpg" and "./a.jpg" match
+  for (const { src, caption: text } of items) {
+    if (shown.has(new URL(src, document.baseURI).href)) continue;
+    const img = document.createElement("img");
+    img.alt = "";
+    img.dataset.src = src;
+    img.dataset.caption = text;
+    heroBg.append(img);
+    slides.push(img);
+  }
+  if (slides.length < 2) return;
+  pause.hidden = false;
+  if (playing()) play();
 }
 
 // ---- nav: mark the section in view ----
@@ -84,10 +123,19 @@ interface GalleryItem {
   area_m2: number;
   width: number;
   height: number;
+  hero?: string; // full-size slideshow background, relative to assets/gallery/
 }
 fetch("assets/gallery/gallery.json")
   .then((r) => (r.ok ? r.json() : []))
   .then((items: GalleryItem[]) => {
+    addSlides(
+      items
+        .filter((g) => g.hero)
+        .map((g) => ({
+          src: `assets/gallery/${g.hero}`,
+          caption: `Hand-labeled dead trees at site ${g.site}, ${g.state} · NAIP ${g.year}`,
+        })),
+    );
     $("#gallery").innerHTML = items
       .map(
         (g) => `<li><a class="site-card" href="map.html#y=${g.year}&amp;s=${esc(g.site)}">
