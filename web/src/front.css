@@ -107,7 +107,14 @@ body.front {
   inset: 0;
   background: linear-gradient(90deg, rgba(6, 18, 12, 0.88) 0%, rgba(6, 18, 12, 0.62) 42%, rgba(6, 18, 12, 0.12) 100%);
 }
-.hero-content { position: relative; z-index: 1; max-width: 640px; padding: 64px 24px 96px max(24px, calc((100vw - 1120px) / 2 + 24px)); }
+.hero-content {
+  /* full width, with the left padding lining the text up with .wrap; the children cap the text column */
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 64px 24px 96px max(24px, calc((100vw - 1120px) / 2 + 24px));
+}
+.hero-content > * { max-width: 600px; }
 .eyebrow {
   display: inline-block;
   margin: 0 0 16px;
