@@ -22,6 +22,8 @@ export type Composite = "true" | "false";
 
 export interface NaipYear {
   year: number;
+  /** Planetary Computer mosaic search id; the tile URLs contain it. */
+  searchid: string;
   tiles: Record<Composite, string>;
   minzoom: number;
 }
@@ -68,10 +70,58 @@ async function getJson<T>(path: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+// Planetary Computer mosaic search ids now expire (they look like "pc1.<unix expiry>.<hash>"), so the
+// ids saved in naip_sources.json go stale. Register the same per-year search again from the browser
+// and swap the fresh id into the tile URLs. Ids are cached until shortly before they expire.
+const PC_REGISTER = "https://planetarycomputer.microsoft.com/api/data/v1/mosaic/register";
+const searchBody = (year: number) => ({
+  // same query as pipeline/register_naip.py
+  collections: ["naip"],
+  "filter-lang": "cql2-json",
+  filter: { op: "=", args: [{ property: "naip:year" }, String(year)] },
+  sortby: [{ field: "datetime", direction: "desc" }],
+});
+const expiry = (id: string) => Number(/^pc1\.(\d+)\./.exec(id)?.[1] ?? 0) * 1000;
+
+async function freshSearchId(year: number): Promise<string> {
+  const key = `naip-search-${year}`;
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached && expiry(cached) - Date.now() > 3600e3) return cached;
+  } catch { /* storage blocked */ }
+  const res = await fetch(PC_REGISTER, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(searchBody(year)),
+  });
+  if (!res.ok) throw new Error(`NAIP ${year} register: HTTP ${res.status}`);
+  const { searchid } = (await res.json()) as { searchid: string };
+  try { localStorage.setItem(key, searchid); } catch { /* storage blocked */ }
+  return searchid;
+}
+
+async function refreshNaip(naip: NaipSources): Promise<NaipSources> {
+  const years = await Promise.all(
+    naip.years.map(async (y) => {
+      try {
+        const id = await freshSearchId(y.year);
+        const tiles = Object.fromEntries(
+          Object.entries(y.tiles).map(([k, url]) => [k, url.replace(`/mosaic/${y.searchid}/`, `/mosaic/${id}/`)]),
+        ) as Record<Composite, string>;
+        return { ...y, searchid: id, tiles };
+      } catch (e) {
+        console.warn(e); // keep the saved id; tiles may still load
+        return y;
+      }
+    }),
+  );
+  return { ...naip, years };
+}
+
 export async function loadStatic() {
   const [manifest, naip, availability] = await Promise.all([
     getJson<{ labelsets: LabelSet[] }>("manifest.json"),
-    getJson<NaipSources>("naip_sources.json"),
+    getJson<NaipSources>("naip_sources.json").then(refreshNaip),
     getJson<{ sites: Availability }>("naip_availability.json")
       .then((a) => a.sites)
       .catch(() => ({}) as Availability), // optional: the map works without it

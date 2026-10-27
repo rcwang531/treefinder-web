@@ -38,7 +38,7 @@ conda activate /gpfs/data1/xiegp/Ruichen/Ruichen/envs/treefinder_web
 
 ```bash
 cd pipeline
-python register_naip.py --out ../web/public/data            # once; the search ids are stable
+python register_naip.py --out ../web/public/data            # once; the map re-registers fresh (expiring) ids in the browser
 python build_labelset.py ../datasets/all_data_20261014 \
     --csv ../datasets/datasummary_20261014.csv \
     --id original --name "Original labels" --out ../web/public/data --no-imagery
