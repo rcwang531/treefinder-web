@@ -1,7 +1,9 @@
 """Register one NAIP mosaic per year on Microsoft Planetary Computer and write the tile URLs.
 
-The search id is a hash of the query, so re-running returns the same ids. Output goes to
-<out>/naip_sources.json, which the web app reads at startup.
+Output goes to <out>/naip_sources.json, which the web app reads at startup. Planetary Computer
+search ids now expire after about a day ("pc1.<unix expiry>.<hash>"), so the web app registers the
+same query again in the browser (web/src/data.ts) and swaps the fresh id into these tile URLs; the
+file mainly records the query, years and URL format.
 
     python register_naip.py --out ../web/public/data --years 2021 2022 2023
 """
