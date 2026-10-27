@@ -97,7 +97,6 @@ async function main() {
   if (import.meta.env.DEV) (window as unknown as { map: maplibregl.Map }).map = map; // for browser tests
   const home = () => goHome(map);
   addNavigation(map, home);
-  $("#home-title").onclick = home;
 
   // ---------- tabs ----------
   const tabs = $("#tabs");
