@@ -80,7 +80,6 @@ kbd {
   cursor: pointer;
 }
 .about-btn:hover { background: var(--surface-2); }
-.home-link { color: inherit; text-decoration: none; }
 
 /* ---- about dialog ---- */
 .about {
@@ -416,5 +415,4 @@ body[data-palette="cvd"] .sw-answer[data-a="unsure"] { border-color: #bbbbbb; }
 }
 @media (max-width: 480px) {
   .title-text { display: none; } /* the logo alone stays as the link to the front page */
-  .home-link { display: none; } /* keeps room for the label-set tab on phones */
 }
