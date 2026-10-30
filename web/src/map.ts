@@ -22,6 +22,12 @@ interface Palette {
  * "cvd": color-blind safe. Outlines and extents are told apart by lightness and line style rather
  * than hue (white with a dark casing; extents dashed), and the mask uses Okabe-Ito orange/blue.
  */
+/** Outline colors for polygons a contributor has answered, per palette. */
+export const ANSWER_COLORS: Record<PaletteName, Record<"dead" | "not_dead" | "unsure", string>> = {
+  standard: { dead: "#00e676", not_dead: "#ff1744", unsure: "#b0bec5" },
+  cvd: { dead: "#56b4e9", not_dead: "#d55e00", unsure: "#bbbbbb" },
+};
+
 export const PALETTES: Record<PaletteName, Palette> = {
   standard: {
     polygon: "#ffe14d",
@@ -189,6 +195,7 @@ const LS_LAYERS = [
   "extents-fill",
   "extents-line",
   "extents-selected",
+  "labels-hit",
   "labels-casing",
   "labels-line",
   "points-cluster",
@@ -219,7 +226,8 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
   if (ls.layers.nir) map.addSource("site-nir", { type: "raster", url: pm(ls.layers.nir), tileSize: 512 });
   if (ls.layers.mask) map.addSource("mask", { type: "raster", url: pm(ls.layers.mask), tileSize: 512 });
   map.addSource("extents", { type: "geojson", data: sites, promoteId: "site" });
-  map.addSource("labels", { type: "vector", url: pm(ls.layers.labels) });
+  // promoteId lets validation answers be attached to each polygon as feature state.
+  map.addSource("labels", { type: "vector", url: pm(ls.layers.labels), promoteId: "pid" });
   map.addSource("points", { type: "geojson", data: points, cluster: true, clusterMaxZoom: 8, clusterRadius: 40 });
 
   const outlineMin = 11;
@@ -259,6 +267,13 @@ export function setLabelSet(map: maplibregl.Map, ls: LabelSet, sites: SiteCollec
   // MapLibre only allows ["zoom"] at the top of an interpolate, so the casing gets its own curve.
   const width = (pad: number): maplibregl.ExpressionSpecification =>
     ["interpolate", ["linear"], ["zoom"], 12, 1.2 + pad, 16, 2 + pad, 19, 3 + pad];
+  map.addLayer({
+    id: "labels-hit", // invisible click target, used by contributor validation
+    type: "fill",
+    source: "labels",
+    "source-layer": "labels",
+    paint: { "fill-color": "#000", "fill-opacity": 0 },
+  });
   map.addLayer({
     id: "labels-casing",
     type: "line",
@@ -343,7 +358,12 @@ export function applyOverlays(map: maplibregl.Map, o: OverlayState) {
 
   const pal = PALETTES[o.palette];
   const paint = (id: string, prop: string, value: unknown) => map.getLayer(id) && map.setPaintProperty(id, prop, value);
-  paint("labels-line", "line-color", pal.polygon);
+  const ans = ANSWER_COLORS[o.palette];
+  paint("labels-line", "line-color", [
+    "match", ["coalesce", ["feature-state", "answer"], ""],
+    "dead", ans.dead, "not_dead", ans.not_dead, "unsure", ans.unsure,
+    pal.polygon,
+  ]);
   paint("labels-casing", "line-color", pal.casing);
   paint("labels-casing", "line-opacity", o.palette === "cvd" ? 0.9 : 0.6);
   for (const id of ["extents-line", "extents-selected"]) {

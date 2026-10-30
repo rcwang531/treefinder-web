@@ -23,6 +23,7 @@ web/                      Vite + TypeScript + MapLibre GL app
   public/assets/front/    front-page images (NAIP site captures, paper figures)
   public/data/            generated data served with the app
 assets/slides/            text and the authors' own figures extracted from the slide decks (reference only)
+contribute/                contributor backend (Google Apps Script) and its setup guide
 ```
 
 ## Environment

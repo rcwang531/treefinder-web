@@ -26,13 +26,22 @@
 
     <div class="body">
       <aside id="sidebar" class="sidebar">
-        <section id="site-card" class="site-card" hidden></section>
-        <div class="filters">
-          <input id="search" type="search" placeholder="Search site or state" autocomplete="off" />
-          <label class="check"><input id="only-labeled" type="checkbox" /> Only sites with labels</label>
-          <div id="count" class="muted"></div>
+        <div class="side-tabs" role="tablist" aria-label="Sidebar">
+          <button id="side-sites" type="button" role="tab" aria-selected="true" aria-controls="sites-view">Sites</button>
+          <button id="side-contribute" type="button" role="tab" aria-selected="false" aria-controls="contribute-view">Contribute</button>
+          <button id="side-review" type="button" role="tab" aria-selected="false" aria-controls="review-view">Review</button>
         </div>
-        <ul id="site-list" class="site-list"></ul>
+        <div id="sites-view" class="side-view" role="tabpanel" aria-labelledby="side-sites">
+          <section id="site-card" class="site-card" hidden></section>
+          <div class="filters">
+            <input id="search" type="search" placeholder="Search site or state" autocomplete="off" />
+            <label class="check"><input id="only-labeled" type="checkbox" /> Only sites with labels</label>
+            <div id="count" class="muted"></div>
+          </div>
+          <ul id="site-list" class="site-list"></ul>
+        </div>
+        <section id="contribute-view" class="side-view contribute-view" role="tabpanel" aria-labelledby="side-contribute" hidden></section>
+        <section id="review-view" class="side-view contribute-view" role="tabpanel" aria-labelledby="side-review" hidden></section>
       </aside>
 
       <main class="map-wrap">

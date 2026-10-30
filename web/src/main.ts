@@ -2,6 +2,8 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import "./tokens.css";
 import "./style.css";
 import type maplibregl from "maplibre-gl";
+import { setupContribute } from "./contribute/panel";
+import { setupReview } from "./contribute/review";
 import { loadSites, loadStatic, type Composite, type LabelSet, type SiteCollection, type SiteProps } from "./data";
 import {
   addNavigation,
@@ -89,6 +91,8 @@ async function main() {
     focus: null as string | null, // site whose NAIP coverage drives the notice / year buttons
   };
 
+  let contrib: ReturnType<typeof setupContribute> | null = null;
+  let review: ReturnType<typeof setupReview> | null = null;
   const map = createMap($("#map"), naip, state.overlays.naip);
   const panel = $("#layers");
   const about = $<HTMLDialogElement>("#about");
@@ -138,6 +142,7 @@ async function main() {
     writeHash({ y: String(y) });
     renderYears();
     renderNotice();
+    contrib?.refresh();
   }
 
   // ---------- coverage notice ----------
@@ -275,6 +280,7 @@ async function main() {
       document.body.classList.remove("drawer-open");
       list.querySelector(`li[data-site="${CSS.escape(p.site)}"]`)?.scrollIntoView({ block: "nearest" });
     }
+    contrib?.refresh();
   }
 
   // ---------- label set switching ----------
@@ -289,6 +295,7 @@ async function main() {
       state.site = state.sites.features.find((f) => f.properties.file === state.site)?.properties.site ?? null;
     }
     setLabelSet(map, ls, state.sites);
+    contrib?.repaint();
     // Site imagery is optional per label set (left out of the GitHub Pages build for size).
     $("#imagery-controls").hidden = !ls.layers.rgb && !ls.layers.nir;
     if (!ls.layers.mask) state.overlays.mask = false;
@@ -314,6 +321,7 @@ async function main() {
     panel.style.setProperty("--sw-poly", pal.polygon);
     panel.style.setProperty("--sw-extent", pal.extent);
     panel.dataset.palette = state.overlays.palette;
+    document.body.dataset.palette = state.overlays.palette; // contributor legend colors follow it too
     for (const out of panel.querySelectorAll<HTMLOutputElement>("output[data-for]")) {
       out.value = `${Math.round(Number(state.overlays[out.dataset.for as keyof OverlayState]) * 100)}%`;
     }
@@ -345,6 +353,7 @@ async function main() {
   // ---------- map interaction ----------
   const clickable = ["points-cluster", "points", "extents-fill"];
   map.on("click", async (e) => {
+    if (drawing || contrib?.handleMapClick(e) || review?.handleMapClick(e)) return; // contributor tools get the click first
     const layers = clickable.filter((id) => map.getLayer(id));
     const [f] = map.queryRenderedFeatures(e.point, { layers });
     if (!f) return;
@@ -357,6 +366,7 @@ async function main() {
     selectSite(f.properties.site, f.layer.id === "points");
   });
   map.on("mousemove", (e) => {
+    if (drawing) return; // the drawing tool sets its own cursor
     const layers = clickable.filter((id) => map.getLayer(id));
     map.getCanvas().style.cursor = map.queryRenderedFeatures(e.point, { layers }).length ? "pointer" : "";
   });
@@ -428,10 +438,62 @@ async function main() {
   };
   if (hash.about) openAbout();
 
+  // ---------- contributor tools (sidebar "Contribute" tab) ----------
+  let drawing = false;
+  const extentOf = (site: string) =>
+    (state.sites?.features.find((f) => f.properties.site === site)?.geometry as GeoJSON.Polygon | undefined) ?? null;
+  contrib = setupContribute(
+    {
+      map,
+      site: () => (state.site && extentOf(state.site) ? { id: state.site, extent: extentOf(state.site)! } : null),
+      extentOf,
+      year: () => state.year,
+      composite: () => state.overlays.naip,
+      latestYear: (site) => years.filter((y) => availability[site]?.[y]).pop() ?? null,
+      setYear,
+      setDrawing: (on) => (drawing = on),
+      openReview: () => showSide("review"),
+    },
+    $("#contribute-view"),
+  );
+  review = setupReview(
+    {
+      map,
+      setYear,
+      setDrawing: (on) => (drawing = on),
+      zoomToBounds: ([w, s, e, n]) => {
+        map.setMaxBounds(maxBoundsFor([w, s, e, n])); // a moved square may sit far from any site
+        const right = matchMedia("(max-width: 760px)").matches ? 24 : panel.offsetWidth + 36;
+        map.fitBounds([[w, s], [e, n]], { padding: { top: 40, bottom: 40, left: 24, right }, maxZoom: 18, duration: motionMs(800) });
+      },
+    },
+    $("#review-view"),
+  );
+  type Side = "sites" | "contribute" | "review";
+  function showSide(which: Side) {
+    for (const s of ["sites", "contribute", "review"] as Side[]) {
+      $(`#${s}-view`).hidden = s !== which;
+      $(`#side-${s}`).setAttribute("aria-selected", String(s === which));
+    }
+    writeHash({ contribute: which === "contribute" ? "1" : null, review: which === "review" ? "1" : null });
+    // Hide the other tab's map tools before showing this one's.
+    if (which !== "contribute") contrib!.show(false);
+    if (which !== "review") review!.show(false);
+    if (which === "contribute") contrib!.show(true);
+    if (which === "review") review!.show(true);
+  }
+  $("#side-sites").onclick = () => showSide("sites");
+  $("#side-contribute").onclick = () => showSide("contribute");
+  $("#side-review").onclick = () => showSide("review");
+
   // ---------- start ----------
   syncPanel();
   setYear(state.year);
   await switchTab(state.tab);
+  if (hash.contribute || hash.review) {
+    showSide(hash.review ? "review" : "contribute");
+    document.body.classList.add("drawer-open");
+  }
   if (state.site) {
     const p = state.byName.get(state.site)!;
     // A saved view of a site outside CONUS was clamped by the CONUS limit on load, so re-zoom.
