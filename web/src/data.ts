@@ -95,7 +95,10 @@ async function freshSearchId(year: number): Promise<string> {
     body: JSON.stringify(searchBody(year)),
   });
   if (!res.ok) throw new Error(`NAIP ${year} register: HTTP ${res.status}`);
-  const { searchid } = (await res.json()) as { searchid: string };
+  // the response field was "searchid" and is now "id"; accept either
+  const body = (await res.json()) as { id?: string; searchid?: string; links?: { href: string }[] };
+  const searchid = body.id ?? body.searchid ?? /\/mosaic\/([^/]+)\//.exec(body.links?.[0]?.href ?? "")?.[1];
+  if (!searchid) throw new Error(`NAIP ${year} register: no search id in the response`);
   try { localStorage.setItem(key, searchid); } catch { /* storage blocked */ }
   return searchid;
 }

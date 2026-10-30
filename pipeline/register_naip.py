@@ -31,7 +31,8 @@ def register(year):
     }
     r = requests.post(f"{API}/mosaic/register", json=body, timeout=60)
     r.raise_for_status()
-    return r.json()["searchid"]
+    j = r.json()
+    return j.get("id") or j["searchid"]  # the field was "searchid" and is now "id"
 
 
 def main():
